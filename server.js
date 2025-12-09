@@ -1,13 +1,31 @@
 // =====================
-// MuddyGob Render-Compatible Server
+// MuddyGob Node.js MUD Server
+// With name + password account system
 // =====================
-const http = require("http");
 const WebSocket = require("ws");
 const fs = require("fs");
 
-// ------------------------------------------------------
-// LOAD WORLD JSON FILES
-// ------------------------------------------------------
+const ACCOUNT_PATH = "./accounts.json";
+
+// ---------------------------
+// Load or create account file
+// ---------------------------
+let accounts = {};
+if (fs.existsSync(ACCOUNT_PATH)) {
+    accounts = JSON.parse(fs.readFileSync(ACCOUNT_PATH, "utf8"));
+} else {
+    fs.writeFileSync(ACCOUNT_PATH, "{}");
+}
+
+// Save accounts to disk
+function saveAccounts() {
+    fs.writeFileSync(ACCOUNT_PATH, JSON.stringify(accounts, null, 2));
+}
+
+
+// ---------------------------
+// Load world rooms
+// ---------------------------
 function loadWorld() {
     const world = {};
     const files = fs.readdirSync("./world");
@@ -23,34 +41,27 @@ function loadWorld() {
 
 const world = loadWorld();
 
-// ------------------------------------------------------
-// CREATE REQUIRED HTTP SERVER (Render needs this)
-// ------------------------------------------------------
-const PORT = process.env.PORT || 9000;
+// ---------------------------
+// WebSocket Server
+// ---------------------------
+const wss = new WebSocket.Server({ port: 9000 });
+console.log("MuddyGob Node.js server running on port 9000");
 
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { "Content-Type": "text/plain" });
-    res.end("MuddyGob WS server is running.\n");
-});
+// Player sessions (socket → session data)
+const sessions = new Map();
 
-// ------------------------------------------------------
-// WEBSOCKET UPGRADE SERVER
-// ------------------------------------------------------
-const wss = new WebSocket.Server({ server });
-
-console.log("MuddyGob WebSocket server initialized.");
-
-const players = {}; // name → player data
-
-
-// ------------------------------------------------------
-// HANDLE WS CONNECTIONS
-// ------------------------------------------------------
 wss.on("connection", (socket) => {
+
+    // new temp session
+    sessions.set(socket, {
+        state: "awaiting_name",   // awaiting_name → awaiting_pass_create → awaiting_pass_login → ready
+        name: null,
+        room: "start"
+    });
 
     socket.send(JSON.stringify({
         type: "system",
-        msg: "Welcome! Please choose a name using: name <yourname>"
+        msg: "Greetings! Please enter your name using: name <yourname>"
     }));
 
     socket.on("message", (data) => {
@@ -59,81 +70,138 @@ wss.on("connection", (socket) => {
     });
 
     socket.on("close", () => {
-        for (const name in players) {
-            if (players[name].socket === socket) {
-                delete players[name];
-                break;
-            }
-        }
+        sessions.delete(socket);
     });
 });
 
 
-// ------------------------------------------------------
-// COMMANDS
-// ------------------------------------------------------
-function handleCommand(socket, text) {
-    const parts = text.split(" ");
+// ===========================
+// COMMAND HANDLER
+// ===========================
+function handleCommand(socket, input) {
+    const parts = input.split(" ");
     const cmd = parts[0].toLowerCase();
+    const arg = parts.slice(1).join(" ");
 
-    // ---------------- NAME ----------------
+    const sess = sessions.get(socket);
+    if (!sess) return;
+
+    // ------------------------------------
+    // 1. NAME
+    // ------------------------------------
     if (cmd === "name") {
-        const name = parts[1];
-        if (!name) {
-            socket.send(JSON.stringify({
-                type: "system",
-                msg: "Please enter a name: name <yourname>"
-            }));
-            return;
+        if (!arg) {
+            return send(socket, "system", "Usage: name <yourname>");
         }
 
-        players[name] = {
-            socket,
-            room: "start"
+        sess.name = arg;
+
+        if (accounts[arg]) {
+            // Returning player
+            sess.state = "awaiting_pass_login";
+            return send(socket, "system",
+                `Welcome back, ${arg}. Please enter your password:\npass <password>`
+            );
+        } else {
+            // New player
+            sess.state = "awaiting_pass_create";
+            return send(socket, "system",
+                `New character. Please create a password:\npass create <password>`
+            );
+        }
+    }
+
+    // ------------------------------------
+    // 2. PASSWORD CREATE
+    // ------------------------------------
+    if (cmd === "pass" && sess.state === "awaiting_pass_create") {
+
+        const parts = arg.split(" ");
+        if (parts[0] !== "create" || !parts[1]) {
+            return send(socket, "system", "Usage: pass create <password>");
+        }
+
+        const password = parts[1];
+
+        // Save new account
+        accounts[sess.name] = {
+            password,
+            createdAt: Date.now(),
+            lastRoom: "start"
         };
+        saveAccounts();
+
+        sess.state = "ready";
+        sess.room = "start";
 
         sendRoom(socket, "start");
         return;
     }
 
-    // ---------------- MOVE ----------------
-    if (cmd === "move") {
-        const dir = parts[1];
-        const player = getPlayer(socket);
-        if (!player) return;
+    // ------------------------------------
+    // 3. PASSWORD LOGIN
+    // ------------------------------------
+    if (cmd === "pass" && sess.state === "awaiting_pass_login") {
 
-        const room = world[player.room];
-        if (!room.exits[dir]) {
-            socket.send(JSON.stringify({
-                type: "system",
-                msg: "You cannot go that way."
-            }));
-            return;
+        const password = arg.trim();
+        if (!password) {
+            return send(socket, "system", "Usage: pass <password>");
         }
 
-        player.room = room.exits[dir];
-        sendRoom(socket, player.room);
+        if (accounts[sess.name].password !== password) {
+            return send(socket, "system", "Incorrect password.");
+        }
+
+        // Good login
+        sess.state = "ready";
+        sess.room = accounts[sess.name].lastRoom || "start";
+
+        sendRoom(socket, sess.room);
         return;
     }
 
-    // ---------------- UNKNOWN ----------------
-    socket.send(JSON.stringify({
-        type: "system",
-        msg: "Unknown command."
-    }));
+    // ------------------------------------
+    // Block all commands before login
+    // ------------------------------------
+    if (sess.state !== "ready") {
+        return send(socket, "system", "Please enter your name and password first.");
+    }
+
+    // ------------------------------------
+    // MOVE
+    // ------------------------------------
+    if (cmd === "move") {
+        const dir = arg;
+
+        const room = world[sess.room];
+        if (!room || !room.exits[dir]) {
+            return send(socket, "system", "You cannot go that way.");
+        }
+
+        sess.room = room.exits[dir];
+        accounts[sess.name].lastRoom = sess.room;
+        saveAccounts();
+
+        sendRoom(socket, sess.room);
+        return;
+    }
+
+    // ------------------------------------
+    // Unknown command
+    // ------------------------------------
+    send(socket, "system", "Unknown command.");
 }
 
 
-// ------------------------------------------------------
-// HELPERS
-// ------------------------------------------------------
-function getPlayer(socket) {
-    return Object.values(players).find(p => p.socket === socket);
+// ===========================
+// SEND HELPERS
+// ===========================
+function send(socket, type, msg) {
+    socket.send(JSON.stringify({ type, msg }));
 }
 
-function sendRoom(socket, roomId) {
-    const room = world[roomId];
-
+function sendRoom(socket, id) {
+    const room = world[id];
     socket.send(JSON.stringify({
         type: "room",
         title: room.title,
@@ -143,11 +211,3 @@ function sendRoom(socket, roomId) {
         background: room.background || null
     }));
 }
-
-
-// ------------------------------------------------------
-// START SERVER (IMPORTANT FOR RENDER!)
-// ------------------------------------------------------
-server.listen(PORT, () => {
-    console.log(`MuddyGob server running on port ${PORT}`);
-});
