@@ -1,0 +1,44 @@
+{
+"start": {
+    "title": "Thorn-Hidden Edge",
+    "text": [
+        "Hiding in thorns, she waits for the night to quiet—",
+        "A choice carved in hush.",
+        "Whispers of their deeds drove her to this place."
+    ],
+    "exits": {
+        "prologue": "start_scanedge",
+        "death": "s1_death"
+    }
+}
+
+,
+
+  "Start_ScanEdge": {
+    "title": "Burned Edge of the Camp",
+    "text": [
+      "She gazes outward, tracing the burned edge...",
+      "A mage stands unmoved.",
+      "A faint shimmer ripples at the border."
+    ],
+    "options": {
+      "up": "S1_ScanDeath",
+      "down": "Start_Wait",
+      "right": "Scene2"
+    }
+  },
+
+  "Start_Wait": {
+    "title": "Stillness in the Shadows",
+    "text": [
+      "She holds herself still—",
+      "Branches hush overhead.",
+      "The magic crackles oddly."
+    ],
+    "options": {
+      "left": "S1_ScanDeath",
+      "down": "Start_ScanEdge",
+      "right": "Scene2"
+    }
+  }
+}
