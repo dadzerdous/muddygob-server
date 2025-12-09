@@ -1,10 +1,13 @@
 // =====================
-// Simple MUD WebSocket Server
+// MuddyGob Render-Compatible Server
 // =====================
+const http = require("http");
 const WebSocket = require("ws");
 const fs = require("fs");
 
-// Load rooms from /world folder
+// ------------------------------------------------------
+// LOAD WORLD JSON FILES
+// ------------------------------------------------------
 function loadWorld() {
     const world = {};
     const files = fs.readdirSync("./world");
@@ -20,12 +23,31 @@ function loadWorld() {
 
 const world = loadWorld();
 
-const wss = new WebSocket.Server({ port: 9000 });
-console.log("MuddyGob Node.js server running on port 9000");
+// ------------------------------------------------------
+// CREATE REQUIRED HTTP SERVER (Render needs this)
+// ------------------------------------------------------
+const PORT = process.env.PORT || 9000;
+
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("MuddyGob WS server is running.\n");
+});
+
+// ------------------------------------------------------
+// WEBSOCKET UPGRADE SERVER
+// ------------------------------------------------------
+const wss = new WebSocket.Server({ server });
+
+console.log("MuddyGob WebSocket server initialized.");
 
 const players = {}; // name → player data
 
+
+// ------------------------------------------------------
+// HANDLE WS CONNECTIONS
+// ------------------------------------------------------
 wss.on("connection", (socket) => {
+
     socket.send(JSON.stringify({
         type: "system",
         msg: "Welcome! Please choose a name using: name <yourname>"
@@ -37,7 +59,6 @@ wss.on("connection", (socket) => {
     });
 
     socket.on("close", () => {
-        // remove any player tied to this socket
         for (const name in players) {
             if (players[name].socket === socket) {
                 delete players[name];
@@ -47,13 +68,15 @@ wss.on("connection", (socket) => {
     });
 });
 
-// ===============
-// Command Handler
-// ===============
+
+// ------------------------------------------------------
+// COMMANDS
+// ------------------------------------------------------
 function handleCommand(socket, text) {
     const parts = text.split(" ");
     const cmd = parts[0].toLowerCase();
 
+    // ---------------- NAME ----------------
     if (cmd === "name") {
         const name = parts[1];
         if (!name) {
@@ -73,10 +96,10 @@ function handleCommand(socket, text) {
         return;
     }
 
+    // ---------------- MOVE ----------------
     if (cmd === "move") {
         const dir = parts[1];
         const player = getPlayer(socket);
-
         if (!player) return;
 
         const room = world[player.room];
@@ -93,18 +116,21 @@ function handleCommand(socket, text) {
         return;
     }
 
+    // ---------------- UNKNOWN ----------------
     socket.send(JSON.stringify({
         type: "system",
         msg: "Unknown command."
     }));
 }
 
-// Find player by socket
+
+// ------------------------------------------------------
+// HELPERS
+// ------------------------------------------------------
 function getPlayer(socket) {
     return Object.values(players).find(p => p.socket === socket);
 }
 
-// Send room info to player
 function sendRoom(socket, roomId) {
     const room = world[roomId];
 
@@ -117,3 +143,11 @@ function sendRoom(socket, roomId) {
         background: room.background || null
     }));
 }
+
+
+// ------------------------------------------------------
+// START SERVER (IMPORTANT FOR RENDER!)
+// ------------------------------------------------------
+server.listen(PORT, () => {
+    console.log(`MuddyGob server running on port ${PORT}`);
+});
