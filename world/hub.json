@@ -1,0 +1,15 @@
+{
+    "hub_start": {
+        "title": "Bonfire Clearing",
+        "text": [
+            "A small clearing lit by a lonely bonfire.",
+            "The flames bend strangely, pulling outward — as if pointing the way."
+        ],
+        "exits": {
+            "up": "g3",
+            "down": "g3",
+            "left": "g3",
+            "right": "g3"
+        }
+    }
+}
