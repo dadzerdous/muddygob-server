@@ -1,24 +1,21 @@
-// =====================
-// MuddyGob Node.js MUD Server
-// Login + Create + Movement + Say + Look
-// =====================
+// ============================
+// MuddyGob MUD Server
+// Accounts + Races + Pronouns
+// Race-based room descriptions
+// ============================
 const WebSocket = require("ws");
 const fs = require("fs");
 
 const ACCOUNT_PATH = "./accounts.json";
-const START_ROOM = "g3"; // bonfire southwest corner
+const START_ROOM = "g3"; // Southwest bonfire
 
-// ---------------------------
-// Load or create account file
-// ---------------------------
+// ------------------------------------
+// Load or create accounts.json
+// ------------------------------------
 let accounts = {};
 if (fs.existsSync(ACCOUNT_PATH)) {
-    try {
-        accounts = JSON.parse(fs.readFileSync(ACCOUNT_PATH, "utf8"));
-    } catch (e) {
-        console.error("Failed to parse accounts.json - starting fresh.", e);
-        accounts = {};
-    }
+    try { accounts = JSON.parse(fs.readFileSync(ACCOUNT_PATH, "utf8")); }
+    catch { accounts = {}; }
 } else {
     fs.writeFileSync(ACCOUNT_PATH, "{}");
 }
@@ -27,58 +24,45 @@ function saveAccounts() {
     fs.writeFileSync(ACCOUNT_PATH, JSON.stringify(accounts, null, 2));
 }
 
-
-// ---------------------------
-// Load world rooms from ./world/*.json
-// ---------------------------
+// ------------------------------------
+// Load world files
+// ------------------------------------
 function loadWorld() {
     const world = {};
-
-    if (!fs.existsSync("./world")) {
-        console.error("No ./world folder found!");
-        return world;
-    }
-
     const files = fs.readdirSync("./world");
+
     for (const file of files) {
         if (file.endsWith(".json")) {
-            try {
-                const data = JSON.parse(fs.readFileSync("./world/" + file, "utf8"));
-                Object.assign(world, data);
-            } catch (e) {
-                console.error("Error loading file:", file, e);
-            }
+            const data = JSON.parse(fs.readFileSync("./world/" + file, "utf8"));
+            Object.assign(world, data);
         }
     }
-
     return world;
 }
 
 const world = loadWorld();
 console.log("Loaded rooms:", Object.keys(world));
 
-
-// --------------------------------------
+// ------------------------------------
 // WebSocket Server
-// --------------------------------------
+// ------------------------------------
 const wss = new WebSocket.Server({ port: 9000 });
-console.log("MuddyGob Node.js server running on port 9000");
+console.log("MuddyGob server running on port 9000");
 
-// socket -> session
-const sessions = new Map();
+const sessions = new Map(); // socket → session
 
 wss.on("connection", (socket) => {
-    console.log("New connection");
 
     sessions.set(socket, {
-        state: "connected",
+        state: "connected",   // connected → creating → ready
         name: null,
+        temp: {},             // store username, race, pronouns before finalize
         room: START_ROOM
     });
 
     socket.send(JSON.stringify({
         type: "system",
-        msg: "Connected to MuddyGob server."
+        msg: "Connected. Press NEW or LOGIN."
     }));
 
     socket.on("message", (data) => {
@@ -86,214 +70,208 @@ wss.on("connection", (socket) => {
         handleIncoming(socket, text);
     });
 
-    socket.on("close", () => {
-        console.log("Disconnected");
-        sessions.delete(socket);
-    });
+    socket.on("close", () => sessions.delete(socket));
 });
 
-
-// --------------------------------------
-// ROUTER (JSON first, then text)
-// --------------------------------------
+// ==================================
+// INPUT ROUTER (JSON first, fallback text)
+// ==================================
 function handleIncoming(socket, raw) {
-
-    // JSON UI commands (new / login)
     try {
         const obj = JSON.parse(raw);
-        if (obj && obj.type) {
-            handleJson(socket, obj);
-            return;
-        }
-    } catch (_) { }
+        if (obj && obj.type) return handleJson(socket, obj);
+    } catch {}
 
-    // Otherwise classic MUD commands
     handleText(socket, raw);
 }
 
-
-
-// --------------------------------------
-// JSON Commands (Create/Login)
-// --------------------------------------
+// ==================================
+// JSON COMMANDS (UI buttons)
+// ==================================
 function handleJson(socket, data) {
     const sess = sessions.get(socket);
-    if (!sess) return;
 
     switch (data.type) {
 
-        case "create_account": {
-            const name = (data.name || "").trim();
-            const password = (data.password || "").trim();
+        // -------------------------
+        // CREATE ACCOUNT STEP 1
+        // -------------------------
+        case "start_create":
+            sess.state = "creating_name";
+            return sendSystem(socket, "Enter a name.");
 
-            if (!name || !password)
-                return sendSystem(socket, "Enter username and password.");
+        case "try_create":
+            if (sess.state !== "creating_name")
+                return sendSystem(socket, "Unexpected.");
 
-            if (accounts[name])
+            const uname = (data.name || "").trim();
+
+            if (!uname)
+                return sendSystem(socket, "Name cannot be empty.");
+
+            if (accounts[uname])
                 return sendSystem(socket, "That name is already taken.");
 
-            accounts[name] = {
-                password,
-                createdAt: Date.now(),
-                lastRoom: START_ROOM
-            };
-            saveAccounts();
+            sess.temp.name = uname;
+            sess.state = "creating_pass";
+            return sendSystem(socket, "Enter a password.");
 
-            sess.state = "ready";
-            sess.name = name;
-            sess.room = START_ROOM;
+        // -------------------------
+        // CREATE PASSWORD
+        // -------------------------
+        case "try_create_pass":
+            if (sess.state !== "creating_pass")
+                return sendSystem(socket, "Unexpected.");
 
-            sendSystem(socket, `Welcome, ${name}. Your journey begins.`);
-            sendRoom(socket, sess.room);
+            const pass = (data.password || "").trim();
+            if (!pass)
+                return sendSystem(socket, "Password cannot be empty.");
+
+            sess.temp.password = pass;
+            sess.state = "creating_race";
+
+            return socket.send(JSON.stringify({
+                type: "choose_race",
+                races: ["goblin", "human", "elf"]
+            }));
+
+        // -------------------------
+        // RACE SELECTION
+        // -------------------------
+        case "choose_race":
+            if (sess.state !== "creating_race")
+                return sendSystem(socket, "Unexpected.");
+
+            sess.temp.race = data.race;
+            sess.state = "creating_pronouns";
+
+            return socket.send(JSON.stringify({
+                type: "choose_pronouns",
+                options: ["he", "she", "they", "it"]
+            }));
+
+        // -------------------------
+        // PRONOUN SELECTION
+        // -------------------------
+        case "choose_pronoun":
+            if (sess.state !== "creating_pronouns")
+                return sendSystem(socket, "Unexpected.");
+
+            sess.temp.pronouns = buildPronounObject(data.pronoun);
+            finalizeAccount(socket);
             return;
-        }
 
-        case "login": {
+        // -------------------------
+        // LOGIN
+        // -------------------------
+        case "try_login":
             const name = (data.name || "").trim();
-            const password = (data.password || "").trim();
-
-            if (!name || !password)
-                return sendSystem(socket, "Enter username and password.");
+            const pw = (data.password || "").trim();
 
             if (!accounts[name])
                 return sendSystem(socket, "No such account.");
-
-            if (accounts[name].password !== password)
+            if (accounts[name].password !== pw)
                 return sendSystem(socket, "Incorrect password.");
 
             sess.state = "ready";
             sess.name = name;
             sess.room = accounts[name].lastRoom || START_ROOM;
 
-            sendSystem(socket, `Welcome back, ${name}.`);
-            sendRoom(socket, sess.room);
-            return;
-        }
-
-        default:
-            sendSystem(socket, "Unknown command.");
+            return sendRoom(socket, sess.room);
     }
 }
 
+// Build pronoun object B
+function buildPronounObject(key) {
+    switch (key) {
+        case "he": return { subj: "he", obj: "him", poss: "his" };
+        case "she": return { subj: "she", obj: "her", poss: "her" };
+        case "they": return { subj: "they", obj: "them", poss: "their" };
+        case "it": return { subj: "it", obj: "it", poss: "its" };
+    }
+}
 
+// Finish account creation
+function finalizeAccount(socket) {
+    const sess = sessions.get(socket);
+    const t = sess.temp;
 
-// --------------------------------------
-// TEXT COMMANDS (Gameplay)
-// --------------------------------------
+    accounts[t.name] = {
+        password: t.password,
+        race: t.race,
+        pronouns: t.pronouns,
+        createdAt: Date.now(),
+        lastRoom: START_ROOM
+    };
+    saveAccounts();
+
+    sess.name = t.name;
+    sess.room = START_ROOM;
+    sess.state = "ready";
+
+    sendSystem(socket, `Welcome, ${sess.name}.`);
+    sendRoom(socket, sess.room);
+}
+
+// ==================================
+// TEXT COMMANDS
+// ==================================
 function handleText(socket, input) {
     const sess = sessions.get(socket);
-    if (!sess) return;
+    if (!sess || sess.state !== "ready")
+        return sendSystem(socket, "You must create/login first.");
 
     const parts = input.split(" ");
     const cmd = parts[0].toLowerCase();
     const arg = parts.slice(1).join(" ");
 
-    // Must be logged in
-    if (sess.state !== "ready")
-        return sendSystem(socket, "Create or login first.");
-
-    // ------------------------
-    // LOOK
-    // ------------------------
-    if (cmd === "look") {
-        sendRoom(socket, sess.room);
-        return;
-    }
-
-    // ------------------------
-    // SAY (broadcast)
-    // ------------------------
-    if (cmd === "say") {
-        if (!arg)
-            return sendSystem(socket, "Say what?");
-
-        broadcast(`${sess.name} says: ${arg}`);
-        return;
-    }
-
-    // ------------------------
-    // MOVE
-    // ------------------------
     if (cmd === "move") {
-        const rawDir = arg.trim();
-
-        const dir = normalizeDirection(rawDir);
-
-        if (!dir)
-            return sendSystem(socket, "Move where?");
-
+        const dir = arg.trim();
         const room = world[sess.room];
-        if (!room || !room.exits || !room.exits[dir]) {
+
+        if (!room.exits[dir])
             return sendSystem(socket, "You cannot go that way.");
-        }
 
         sess.room = room.exits[dir];
+        accounts[sess.name].lastRoom = sess.room;
+        saveAccounts();
+        return sendRoom(socket, sess.room);
+    }
 
-        if (accounts[sess.name]) {
-            accounts[sess.name].lastRoom = sess.room;
-            saveAccounts();
-        }
-
-        sendRoom(socket, sess.room);
-        return;
+    if (cmd === "say") {
+        return sendSystem(socket, `(You say): ${arg}`);
     }
 
     sendSystem(socket, "Unknown command.");
 }
 
-
-
-// --------------------------------------
-// Direction Mapper
-// --------------------------------------
-function normalizeDirection(dir) {
-    if (!dir) return null;
-
-    dir = dir.toLowerCase();
-
-    // UI arrows
-    if (dir === "up") return "north";
-    if (dir === "down") return "south";
-    if (dir === "left") return "west";
-    if (dir === "right") return "east";
-
-    // direct synonyms
-    if (dir === "n") return "north";
-    if (dir === "s") return "south";
-    if (dir === "e") return "east";
-    if (dir === "w") return "west";
-
-    return dir;
-}
-
-
-
-// --------------------------------------
-// Send helpers
-// --------------------------------------
+// ==================================
+// SEND HELPERS
+// ==================================
 function sendSystem(socket, msg) {
     socket.send(JSON.stringify({ type: "system", msg }));
 }
 
-function broadcast(msg) {
-    for (const [sock] of sessions) {
-        sock.send(JSON.stringify({ type: "system", msg }));
-    }
-}
-
 function sendRoom(socket, id) {
+    const sess = sessions.get(socket);
+    const acc = accounts[sess.name];
+    const race = acc.race;
+
     const room = world[id];
-    if (!room) {
-        return sendSystem(socket, `The world frays here. (Unknown room: ${id})`);
-    }
+    if (!room) return sendSystem(socket, "The world fractures here.");
+
+    const desc =
+        room.textByRace?.[race] ??
+        room.text ??
+        ["You see nothing special."];
 
     socket.send(JSON.stringify({
         type: "room",
         id,
-        title: room.title || "Somewhere",
-        desc: room.text || [],
-        exits: room.exits ? Object.keys(room.exits) : [],
-        players: [], // future multiplayer
+        title: room.title,
+        desc,
+        exits: Object.keys(room.exits || {}),
+        players: [],
         background: room.background || null
     }));
 }
