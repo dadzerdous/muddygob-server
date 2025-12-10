@@ -7,27 +7,37 @@
 const WebSocket = require("ws");
 const fs = require("fs");
 
-const ACCOUNT_PATH = "./accounts.json";
+const ACCOUNT_PATH = "/tmp/accounts.json";
 const START_ROOM = "g3";
 
 // ===================================
-// Load or create accounts.json
+// Load or create accounts.json (+ logs)
 // ===================================
 let accounts = {};
 if (fs.existsSync(ACCOUNT_PATH)) {
     try {
+        console.log("[ACCOUNTS] Found accounts.json, loading...");
         accounts = JSON.parse(fs.readFileSync(ACCOUNT_PATH, "utf8"));
+        console.log("[ACCOUNTS] Loaded", Object.keys(accounts).length, "accounts.");
     } catch (e) {
-        console.error("ERROR parsing accounts.json. Resetting.", e);
+        console.error("[ACCOUNTS] ERROR parsing accounts.json:", e);
         accounts = {};
     }
 } else {
+    console.log("[ACCOUNTS] accounts.json not found, creating new file...");
     fs.writeFileSync(ACCOUNT_PATH, "{}");
+    console.log("[ACCOUNTS] Created empty accounts.json");
 }
 
 function saveAccounts() {
-    fs.writeFileSync(ACCOUNT_PATH, JSON.stringify(accounts, null, 2));
+    try {
+        fs.writeFileSync(ACCOUNT_PATH, JSON.stringify(accounts, null, 2));
+        console.log("[ACCOUNTS] Saved accounts.json");
+    } catch (e) {
+        console.error("[ACCOUNTS] FAILED TO SAVE accounts.json:", e);
+    }
 }
+
 
 // ===================================
 // Load world/*.json
