@@ -52,7 +52,8 @@ function loadWorld() {
 }
 
 const world = loadWorld();
-console.log("Loaded world rooms:", Object.keys(world));
+console.log("Loaded rooms:", Object.keys(world));
+
 
 // ---------------------------
 // WebSocket Server
