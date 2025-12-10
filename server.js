@@ -1,23 +1,24 @@
 // ============================
 // MuddyGob MUD Server
 // Accounts + Races + Pronouns
-// Race-based room descriptions
+// Room loading + Chat Broadcast
 // ============================
+
 const WebSocket = require("ws");
 const fs = require("fs");
 
 const ACCOUNT_PATH = "./accounts.json";
-const START_ROOM = "g3"; // Southwest bonfire
+const START_ROOM = "g3";
 
-// ------------------------------------
+// ===================================
 // Load or create accounts.json
-// ------------------------------------
+// ===================================
 let accounts = {};
 if (fs.existsSync(ACCOUNT_PATH)) {
     try {
         accounts = JSON.parse(fs.readFileSync(ACCOUNT_PATH, "utf8"));
     } catch (e) {
-        console.error("Failed to parse accounts.json, starting fresh.", e);
+        console.error("ERROR parsing accounts.json. Resetting.", e);
         accounts = {};
     }
 } else {
@@ -28,13 +29,14 @@ function saveAccounts() {
     fs.writeFileSync(ACCOUNT_PATH, JSON.stringify(accounts, null, 2));
 }
 
-// ------------------------------------
-// Load world files
-// ------------------------------------
+// ===================================
+// Load world/*.json
+// ===================================
 function loadWorld() {
     const world = {};
+
     if (!fs.existsSync("./world")) {
-        console.error("No ./world directory found!");
+        console.error("NO ./world DIRECTORY FOUND!");
         return world;
     }
 
@@ -45,7 +47,7 @@ function loadWorld() {
                 const data = JSON.parse(fs.readFileSync("./world/" + file, "utf8"));
                 Object.assign(world, data);
             } catch (e) {
-                console.error("Failed to load world file:", file, e);
+                console.error("FAILED TO LOAD ROOM FILE:", file, e);
             }
         }
     }
@@ -55,15 +57,15 @@ function loadWorld() {
 const world = loadWorld();
 console.log("Loaded rooms:", Object.keys(world));
 
-// ------------------------------------
+// ===================================
 // WebSocket Server
-// ------------------------------------
+// ===================================
 const wss = new WebSocket.Server({ port: 9000 });
 console.log("MuddyGob server running on port 9000");
 
 const sessions = new Map(); // socket -> { state, loginId, room }
 
-// Pronoun helpers
+// Races + allowed pronouns
 const RACE_OPTIONS = ["goblin", "human", "elf"];
 const RACE_PRONOUNS = {
     goblin: ["they", "it"],
@@ -71,21 +73,36 @@ const RACE_PRONOUNS = {
     human: ["he", "she", "they", "it"]
 };
 
+// Build actual pronoun object
 function buildPronounObject(key) {
     switch (key) {
-        case "he":   return { subj: "he",   obj: "him",  poss: "his"   };
-        case "she":  return { subj: "she",  obj: "her",  poss: "her"   };
+        case "he": return { subj: "he", obj: "him", poss: "his" };
+        case "she": return { subj: "she", obj: "her", poss: "her" };
         case "they": return { subj: "they", obj: "them", poss: "their" };
-        case "it":   return { subj: "it",   obj: "it",   poss: "its"   };
-        default:     return { subj: key,    obj: key,    poss: key + "'s" };
+        case "it": return { subj: "it", obj: "it", poss: "its" };
+        default: return { subj: key, obj: key, poss: key + "'s" };
     }
 }
 
+// ===================================
+// BROADCAST CHAT TO ROOM
+// ===================================
+function broadcastToRoom(roomId, msg) {
+    for (const [sock, sess] of sessions.entries()) {
+        if (sess.room === roomId && sess.state === "ready") {
+            sock.send(JSON.stringify({ type: "system", msg }));
+        }
+    }
+}
+
+// ===================================
+// Handle each incoming connection
+// ===================================
 wss.on("connection", (socket) => {
     console.log("New connection");
 
     sessions.set(socket, {
-        state: "connected",   // "connected" -> "ready"
+        state: "connected",
         loginId: null,
         room: START_ROOM
     });
@@ -103,139 +120,119 @@ wss.on("connection", (socket) => {
     });
 });
 
-// ==================================
-// INPUT ROUTER (JSON first, fallback text)
-// ==================================
+// ===================================
+// JSON before text
+// ===================================
 function handleIncoming(socket, raw) {
-    // Try JSON
     try {
         const obj = JSON.parse(raw);
         if (obj && obj.type) {
             handleJson(socket, obj);
             return;
         }
-    } catch (_) {
-        // Not JSON, fall through to text
-    }
+    } catch {}
 
     handleText(socket, raw);
 }
 
-// ==================================
-// JSON COMMANDS (UI buttons)
-// ==================================
+// ===================================
+// JSON COMMANDS (UI flow)
+// ===================================
 function handleJson(socket, data) {
     const sess = sessions.get(socket);
     if (!sess) return;
 
     switch (data.type) {
-        // -------------------------
-        // CREATE ACCOUNT (single shot)
-        // -------------------------
+
+        // --- CREATE ACCOUNT ---
         case "create_account": {
-            const baseNameRaw = (data.name || "").trim();
+            const baseName = (data.name || "").trim();
             const password = (data.password || "").trim();
             const race = (data.race || "").trim().toLowerCase();
             const pronounKey = (data.pronoun || "").trim().toLowerCase();
 
-            // Basic presence
-            if (!baseNameRaw || !password || !race || !pronounKey) {
+            if (!baseName || !password || !race || !pronounKey) {
                 return sendSystem(socket,
-                    "That being cannot be created (missing name, password, race, or pronouns)."
+                    "That being cannot be created (missing name, password, race, or pronoun)."
                 );
             }
 
-            // Name rules: 4–16 letters, apostrophe allowed, no spaces/numbers
+            // Must be 4–16 letters + apostrophe
             const NAME_RE = /^[A-Za-z']{4,16}$/;
-            if (!NAME_RE.test(baseNameRaw)) {
+            if (!NAME_RE.test(baseName)) {
                 return sendSystem(socket,
                     "That being cannot be created (name must be 4–16 letters; apostrophes allowed)."
                 );
             }
 
-            // Race + pronoun validation
             if (!RACE_OPTIONS.includes(race)) {
                 return sendSystem(socket,
-                    "That being cannot be created (its ancestry feels… wrong)."
+                    "That being cannot be created (its ancestry feels wrong)."
                 );
             }
 
-            const allowedPronouns = RACE_PRONOUNS[race] || [];
-            if (!allowedPronouns.includes(pronounKey)) {
+            if (!RACE_PRONOUNS[race].includes(pronounKey)) {
                 return sendSystem(socket,
-                    "That being cannot be created (those pronouns do not fit this ancestry)."
+                    "That being cannot be created (those pronouns do not match this ancestry)."
                 );
             }
 
-            // Build loginId: name@race.pronoun (case-insensitive key)
-            const baseLower = baseNameRaw.toLowerCase();
-            const loginId = `${baseLower}@${race}.${pronounKey}`;
+            const keyName = baseName.toLowerCase();
+            const loginId = `${keyName}@${race}.${pronounKey}`;
 
             if (accounts[loginId]) {
                 return sendSystem(socket,
-                    "That being cannot be created (a " +
-                    race +
-                    " with those pronouns already carries that name)."
+                    "That being cannot be created (another exists with this form)."
                 );
             }
 
-            const pronouns = buildPronounObject(pronounKey);
-
             accounts[loginId] = {
-                name: baseNameRaw,
+                name: baseName,
                 password,
                 race,
                 pronounKey,
-                pronouns,
-                createdAt: Date.now(),
-                lastRoom: START_ROOM
+                pronouns: buildPronounObject(pronounKey),
+                lastRoom: START_ROOM,
+                createdAt: Date.now()
             };
+
             saveAccounts();
 
             sess.state = "ready";
             sess.loginId = loginId;
             sess.room = START_ROOM;
 
-            sendSystem(
-                socket,
-                `A new ${race} stirs in the dark as ${baseNameRaw}.` +
-                ` Your login ID is: ${loginId}`
-            );
-            sendRoom(socket, sess.room);
+            sendSystem(socket, `A new ${race} awakens as ${baseName}. Your login ID is ${loginId}.`);
+            sendRoom(socket, START_ROOM);
             return;
         }
 
-        // -------------------------
-        // LOGIN
-        // -------------------------
+        // --- LOGIN ---
         case "try_login": {
-            // Player can enter either:
-            //   - full ID (name@race.pronoun)
-            //   - or just type that into the same "username" field
-            let loginId = (data.login || data.name || "").trim().toLowerCase();
+            let login = (data.login || "").trim().toLowerCase();
             const password = (data.password || "").trim();
 
-            if (!loginId || !password) {
+            if (!login || !password) {
                 return sendSystem(socket,
-                    "You reach for a being, but give no name or no key phrase."
+                    "A name and a key phrase are required."
                 );
             }
 
-            const acc = accounts[loginId];
+            const acc = accounts[login];
             if (!acc) {
                 return sendSystem(socket,
-                    "No such being found. (Check the name@race.pronoun.)"
+                    "No such being exists."
                 );
             }
 
             if (acc.password !== password) {
                 return sendSystem(socket,
-                    "The pattern of this being does not match. (Wrong password.)"
+                    "The key phrase does not match."
                 );
             }
 
             sess.state = "ready";
-            sess.loginId = loginId;
+            sess.loginId = login;
             sess.room = acc.lastRoom || START_ROOM;
 
             sendSystem(socket, `Welcome back, ${acc.name}.`);
@@ -244,60 +241,62 @@ function handleJson(socket, data) {
         }
 
         default:
-            sendSystem(socket, "The world doesn’t understand that request.");
+            sendSystem(socket, "The world does not understand that.");
     }
 }
 
-// ==================================
-// TEXT COMMANDS (in-game)
-// ==================================
+// ===================================
+// TEXT COMMANDS
+// ===================================
 function handleText(socket, input) {
     const sess = sessions.get(socket);
     if (!sess || sess.state !== "ready") {
-        return sendSystem(socket, "You must create or login before acting in the world.");
+        return sendSystem(socket, "You must create or login first.");
     }
 
-    const parts = input.split(" ");
-    const cmd = (parts[0] || "").toLowerCase();
-    const arg = parts.slice(1).join(" ");
+    const [cmd, ...rest] = input.split(" ");
+    const arg = rest.join(" ").trim();
 
-    if (cmd === "move") {
-        const dir = arg.trim();
-        if (!dir) {
-            return sendSystem(socket, "Move where?");
+    switch (cmd.toLowerCase()) {
+
+        case "move": {
+            if (!arg) return sendSystem(socket, "Move where?");
+            const room = world[sess.room];
+
+            if (!room || !room.exits || !room.exits[arg]) {
+                return sendSystem(socket, "You cannot go that way.");
+            }
+
+            sess.room = room.exits[arg];
+
+            const acc = accounts[sess.loginId];
+            if (acc) {
+                acc.lastRoom = sess.room;
+                saveAccounts();
+            }
+
+            sendRoom(socket, sess.room);
+            return;
         }
 
-        const room = world[sess.room];
-        if (!room || !room.exits || !room.exits[dir]) {
-            return sendSystem(socket, "You cannot go that way.");
+        case "say": {
+            const acc = accounts[sess.loginId];
+            const name = acc ? acc.name : "Someone";
+            const text = arg || "...";
+
+            // NEW: broadcast to all in room
+            broadcastToRoom(sess.room, `${name} says: "${text}"`);
+            return;
         }
 
-        sess.room = room.exits[dir];
-
-        const acc = accounts[sess.loginId];
-        if (acc) {
-            acc.lastRoom = sess.room;
-            saveAccounts();
-        }
-
-        sendRoom(socket, sess.room);
-        return;
+        default:
+            sendSystem(socket, "Nothing responds.");
     }
-
-    if (cmd === "say") {
-        const acc = accounts[sess.loginId];
-        const name = acc ? acc.name : "Someone";
-        const text = arg.trim() || "...";
-        // Later we’ll broadcast to other players; for now just echo
-        return sendSystem(socket, `${name} says: "${text}"`);
-    }
-
-    sendSystem(socket, "Nothing in the dark responds to that.");
 }
 
-// ==================================
-// SEND HELPERS
-// ==================================
+// ===================================
+// Send helpers
+// ===================================
 function sendSystem(socket, msg) {
     socket.send(JSON.stringify({ type: "system", msg }));
 }
@@ -311,7 +310,7 @@ function sendRoom(socket, id) {
 
     const room = world[id];
     if (!room) {
-        return sendSystem(socket, "The world frays here. (Unknown room.)");
+        return sendSystem(socket, "The world frays here (missing room).");
     }
 
     const desc =
@@ -325,7 +324,6 @@ function sendRoom(socket, id) {
         title: room.title || "Somewhere",
         desc,
         exits: Object.keys(room.exits || {}),
-        players: [], // TODO: populate when we track all sockets per room
         background: room.background || null
     }));
 }
