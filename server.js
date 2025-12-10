@@ -118,6 +118,35 @@ function handleJson(socket, data) {
             sess.state = "creating_pass";
             return sendSystem(socket, "Enter a password.");
 
+        case "choose_race":
+    if (sess.state !== "creating_race")
+        return sendSystem(socket, "Unexpected.");
+
+    sess.temp.race = data.race;
+
+    let allowed = [];
+    switch (data.race) {
+        case "goblin":
+            allowed = ["they", "it"];
+            break;
+        case "elf":
+            allowed = ["he", "she"];
+            break;
+        case "human":
+            allowed = ["he", "she", "they", "it"];
+            break;
+    }
+
+    sess.state = "creating_pronouns";
+
+    socket.send(JSON.stringify({
+        type: "choose_pronouns",
+        allowed
+    }));
+
+    return;
+
+
         // -------------------------
         // CREATE PASSWORD
         // -------------------------
