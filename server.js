@@ -90,6 +90,8 @@ function handleIncoming(socket, raw) {
 // ==================================
 function handleJson(socket, data) {
     const sess = sessions.get(socket);
+    console.log("JSON received:", data);
+
 
     switch (data.type) {
 
