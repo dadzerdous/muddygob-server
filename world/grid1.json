@@ -1,0 +1,51 @@
+{
+    "g1": {
+        "title": "Grid Room 1",
+        "text": [
+            "A quiet northern corner of a small test grid.",
+            "Paths lead east and south."
+        ],
+        "exits": {
+            "east": "g2",
+            "south": "g3"
+        }
+    },
+
+    "g2": {
+        "title": "Grid Room 2",
+        "text": [
+            "The northeast of the grid.",
+            "You see ways west, southwest, and south."
+        ],
+        "exits": {
+            "west": "g1",
+            "southwest": "g3",
+            "south": "g4"
+        }
+    },
+
+    "g3": {
+        "title": "Grid Room 3",
+        "text": [
+            "The southwest corner.",
+            "Paths lead north, northeast, and east."
+        ],
+        "exits": {
+            "north": "g1",
+            "northeast": "g2",
+            "east": "g4"
+        }
+    },
+
+    "g4": {
+        "title": "Grid Room 4",
+        "text": [
+            "The southeast corner — a quiet testing room.",
+            "Paths lead north and west."
+        ],
+        "exits": {
+            "north": "g2",
+            "west": "g3"
+        }
+    }
+}
