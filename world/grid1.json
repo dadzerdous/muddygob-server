@@ -24,18 +24,32 @@
         }
     },
 
-    "g3": {
-        "title": "Grid Room 3",
-        "text": [
-            "The southwest corner.",
-            "Paths lead north, northeast, and east."
+"g3": {
+    "title": "Bonfire Hollow",
+    "textByRace": {
+        "goblin": [
+            "The bonfire spits and cracks, casting jagged teeth of light.",
+            "The smoke smells like old caves and warm blood.",
+            "This place feels… almost safe."
         ],
-        "exits": {
-            "north": "g1",
-            "northeast": "g2",
-            "east": "g4"
-        }
+        "human": [
+            "A cozy bonfire flickers invitingly.",
+            "Everything in this forest feels suspiciously normal.",
+            "You swear someone arranged these logs on purpose."
+        ],
+        "elf": [
+            "A serene flame dances with perfect rhythm.",
+            "Nature hums quietly around you.",
+            "The air glows with a faint ancient warmth."
+        ]
     },
+    "exits": {
+        "n": "g1", "north": "g1",
+        "ne": "g2", "northeast": "g2",
+        "e": "g4", "east": "g4"
+    }
+},
+
 
     "g4": {
         "title": "Grid Room 4",
