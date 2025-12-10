@@ -1,12 +1,12 @@
 // =====================
 // MuddyGob Node.js MUD Server
-// Modern JSON login + create + text commands in-game
+// Login + Create + Movement + Say + Look
 // =====================
 const WebSocket = require("ws");
 const fs = require("fs");
 
 const ACCOUNT_PATH = "./accounts.json";
-const START_ROOM = "g3"; // SW corner bonfire spawn
+const START_ROOM = "g3"; // bonfire southwest corner
 
 // ---------------------------
 // Load or create account file
@@ -16,7 +16,7 @@ if (fs.existsSync(ACCOUNT_PATH)) {
     try {
         accounts = JSON.parse(fs.readFileSync(ACCOUNT_PATH, "utf8"));
     } catch (e) {
-        console.error("Failed to parse accounts.json, starting fresh.", e);
+        console.error("Failed to parse accounts.json - starting fresh.", e);
         accounts = {};
     }
 } else {
@@ -27,13 +27,15 @@ function saveAccounts() {
     fs.writeFileSync(ACCOUNT_PATH, JSON.stringify(accounts, null, 2));
 }
 
+
 // ---------------------------
 // Load world rooms from ./world/*.json
 // ---------------------------
 function loadWorld() {
     const world = {};
+
     if (!fs.existsSync("./world")) {
-        console.error("No ./world directory found!");
+        console.error("No ./world folder found!");
         return world;
     }
 
@@ -44,10 +46,11 @@ function loadWorld() {
                 const data = JSON.parse(fs.readFileSync("./world/" + file, "utf8"));
                 Object.assign(world, data);
             } catch (e) {
-                console.error("Failed to load world file:", file, e);
+                console.error("Error loading file:", file, e);
             }
         }
     }
+
     return world;
 }
 
@@ -55,25 +58,24 @@ const world = loadWorld();
 console.log("Loaded rooms:", Object.keys(world));
 
 
-// ---------------------------
+// --------------------------------------
 // WebSocket Server
-// ---------------------------
+// --------------------------------------
 const wss = new WebSocket.Server({ port: 9000 });
 console.log("MuddyGob Node.js server running on port 9000");
 
-// socket -> { state, name, room }
+// socket -> session
 const sessions = new Map();
 
 wss.on("connection", (socket) => {
     console.log("New connection");
 
     sessions.set(socket, {
-        state: "connected", // connected -> ready
+        state: "connected",
         name: null,
         room: START_ROOM
     });
 
-    // Just let the client know we're alive.
     socket.send(JSON.stringify({
         type: "system",
         msg: "Connected to MuddyGob server."
@@ -85,49 +87,50 @@ wss.on("connection", (socket) => {
     });
 
     socket.on("close", () => {
-        console.log("Connection closed");
+        console.log("Disconnected");
         sessions.delete(socket);
     });
 });
 
-// ---------------------------
-// Incoming message router
-// ---------------------------
+
+// --------------------------------------
+// ROUTER (JSON first, then text)
+// --------------------------------------
 function handleIncoming(socket, raw) {
-    // Try JSON first (for login/create/etc)
+
+    // JSON UI commands (new / login)
     try {
         const obj = JSON.parse(raw);
-        if (obj && typeof obj === "object" && obj.type) {
-            handleJsonCommand(socket, obj);
+        if (obj && obj.type) {
+            handleJson(socket, obj);
             return;
         }
-    } catch (_e) {
-        // Not JSON, fall through to text command
-    }
+    } catch (_) { }
 
-    // Otherwise, treat as classic text command (e.g. "move up")
-    handleTextCommand(socket, raw);
+    // Otherwise classic MUD commands
+    handleText(socket, raw);
 }
 
-// ---------------------------
-// JSON commands (UI buttons)
-// ---------------------------
-function handleJsonCommand(socket, data) {
+
+
+// --------------------------------------
+// JSON Commands (Create/Login)
+// --------------------------------------
+function handleJson(socket, data) {
     const sess = sessions.get(socket);
     if (!sess) return;
 
     switch (data.type) {
+
         case "create_account": {
             const name = (data.name || "").trim();
             const password = (data.password || "").trim();
 
-            if (!name || !password) {
-                return sendSystem(socket, "Please enter both a username and a password.");
-            }
+            if (!name || !password)
+                return sendSystem(socket, "Enter username and password.");
 
-            if (accounts[name]) {
+            if (accounts[name])
                 return sendSystem(socket, "That name is already taken.");
-            }
 
             accounts[name] = {
                 password,
@@ -140,7 +143,7 @@ function handleJsonCommand(socket, data) {
             sess.name = name;
             sess.room = START_ROOM;
 
-            sendSystem(socket, `Welcome, ${name}. Your journey begins at the bonfire.`);
+            sendSystem(socket, `Welcome, ${name}. Your journey begins.`);
             sendRoom(socket, sess.room);
             return;
         }
@@ -149,17 +152,14 @@ function handleJsonCommand(socket, data) {
             const name = (data.name || "").trim();
             const password = (data.password || "").trim();
 
-            if (!name || !password) {
-                return sendSystem(socket, "Please enter both username and password.");
-            }
+            if (!name || !password)
+                return sendSystem(socket, "Enter username and password.");
 
-            if (!accounts[name]) {
-                return sendSystem(socket, "No such account. Try creating a new one.");
-            }
+            if (!accounts[name])
+                return sendSystem(socket, "No such account.");
 
-            if (accounts[name].password !== password) {
+            if (accounts[name].password !== password)
                 return sendSystem(socket, "Incorrect password.");
-            }
 
             sess.state = "ready";
             sess.name = name;
@@ -171,15 +171,16 @@ function handleJsonCommand(socket, data) {
         }
 
         default:
-            console.log("Unknown JSON command:", data);
             sendSystem(socket, "Unknown command.");
     }
 }
 
-// ---------------------------
-// Text commands (in-game)
-// ---------------------------
-function handleTextCommand(socket, input) {
+
+
+// --------------------------------------
+// TEXT COMMANDS (Gameplay)
+// --------------------------------------
+function handleText(socket, input) {
     const sess = sessions.get(socket);
     if (!sess) return;
 
@@ -187,16 +188,39 @@ function handleTextCommand(socket, input) {
     const cmd = parts[0].toLowerCase();
     const arg = parts.slice(1).join(" ");
 
-    // Block in-game commands until logged in
-    if (sess.state !== "ready") {
-        return sendSystem(socket, "You must create or login before moving.");
+    // Must be logged in
+    if (sess.state !== "ready")
+        return sendSystem(socket, "Create or login first.");
+
+    // ------------------------
+    // LOOK
+    // ------------------------
+    if (cmd === "look") {
+        sendRoom(socket, sess.room);
+        return;
     }
 
+    // ------------------------
+    // SAY (broadcast)
+    // ------------------------
+    if (cmd === "say") {
+        if (!arg)
+            return sendSystem(socket, "Say what?");
+
+        broadcast(`${sess.name} says: ${arg}`);
+        return;
+    }
+
+    // ------------------------
+    // MOVE
+    // ------------------------
     if (cmd === "move") {
-        const dir = arg.trim();
-        if (!dir) {
+        const rawDir = arg.trim();
+
+        const dir = normalizeDirection(rawDir);
+
+        if (!dir)
             return sendSystem(socket, "Move where?");
-        }
 
         const room = world[sess.room];
         if (!room || !room.exits || !room.exits[dir]) {
@@ -204,8 +228,8 @@ function handleTextCommand(socket, input) {
         }
 
         sess.room = room.exits[dir];
-        // update last room
-        if (sess.name && accounts[sess.name]) {
+
+        if (accounts[sess.name]) {
             accounts[sess.name].lastRoom = sess.room;
             saveAccounts();
         }
@@ -214,21 +238,53 @@ function handleTextCommand(socket, input) {
         return;
     }
 
-    // You can add say/look/etc here later
     sendSystem(socket, "Unknown command.");
 }
 
-// ---------------------------
+
+
+// --------------------------------------
+// Direction Mapper
+// --------------------------------------
+function normalizeDirection(dir) {
+    if (!dir) return null;
+
+    dir = dir.toLowerCase();
+
+    // UI arrows
+    if (dir === "up") return "north";
+    if (dir === "down") return "south";
+    if (dir === "left") return "west";
+    if (dir === "right") return "east";
+
+    // direct synonyms
+    if (dir === "n") return "north";
+    if (dir === "s") return "south";
+    if (dir === "e") return "east";
+    if (dir === "w") return "west";
+
+    return dir;
+}
+
+
+
+// --------------------------------------
 // Send helpers
-// ---------------------------
+// --------------------------------------
 function sendSystem(socket, msg) {
     socket.send(JSON.stringify({ type: "system", msg }));
+}
+
+function broadcast(msg) {
+    for (const [sock] of sessions) {
+        sock.send(JSON.stringify({ type: "system", msg }));
+    }
 }
 
 function sendRoom(socket, id) {
     const room = world[id];
     if (!room) {
-        return sendSystem(socket, "The world frays here. (Unknown room.)");
+        return sendSystem(socket, `The world frays here. (Unknown room: ${id})`);
     }
 
     socket.send(JSON.stringify({
@@ -237,7 +293,7 @@ function sendRoom(socket, id) {
         title: room.title || "Somewhere",
         desc: room.text || [],
         exits: room.exits ? Object.keys(room.exits) : [],
-        players: [], // multiplayer later
+        players: [], // future multiplayer
         background: room.background || null
     }));
 }
