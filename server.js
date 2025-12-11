@@ -107,6 +107,16 @@ function broadcastToRoomExcept(roomId, msg, exceptSocket) {
     }
 }
 
+// Compatibility: broadcast to everyone in room
+function broadcastToRoom(roomId, msg) {
+    for (const [sock, sess] of sessions.entries()) {
+        if (sess.room === roomId && sess.state === "ready") {
+            sock.send(JSON.stringify({ type: "system", msg }));
+        }
+    }
+}
+
+
 
 // ===================================
 // Handle each incoming connection
