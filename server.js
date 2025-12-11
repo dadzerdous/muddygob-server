@@ -288,40 +288,12 @@ function handleText(socket, input) {
 
     switch (cmd.toLowerCase()) {
 
-case "move": {
-    if (!arg) return sendSystem(socket, "Move where?");
-    const acc = accounts[sess.loginId];
-    const name = acc ? acc.name : "Someone";
-    const dir = normalizeDir(arg);
+case "go":
+    return handleMove(socket, arg);
 
+case "move":
+    return handleMove(socket, arg);
 
-    const room = world[sess.room];
-if (!room.exits || !room.exits[dir]) {
-
-        return sendSystem(socket, "You cannot go that way.");
-    }
-
-    const oldRoom = sess.room;
-    const newRoom = room.exits[dir];
-
-
-    // Announce departure to others
-    broadcastToRoomExcept(oldRoom, `[MOVE] ${name} leaves ${arg}.`, socket);
-
-    // move player
-    sess.room = newRoom;
-
-    // save last location
-    acc.lastRoom = newRoom;
-    saveAccounts();
-
-    // Announce arrival to others
-    broadcastToRoomExcept(newRoom, `[MOVE] ${name} enters from ${oppositeDirection(arg)}.`, socket);
-
-    // send room info to mover
-    sendRoom(socket, newRoom);
-    return;
-}
 
 
 case "say": {
@@ -352,6 +324,31 @@ case "l": {
         default:
             sendSystem(socket, "Nothing responds.");
     }
+}
+function handleMove(socket, arg) {
+    const sess = sessions.get(socket);
+    const acc = accounts[sess.loginId];
+    const name = acc ? acc.name : "Someone";
+
+    const dir = normalizeDir(arg);
+    const room = world[sess.room];
+
+    if (!room || !room.exits || !room.exits[dir]) {
+        return sendSystem(socket, "You cannot go that way.");
+    }
+
+    const oldRoom = sess.room;
+    const newRoom = room.exits[dir];
+
+    broadcastToRoomExcept(oldRoom, `[MOVE] ${name} leaves ${dir}.`, socket);
+
+    sess.room = newRoom;
+    acc.lastRoom = newRoom;
+    saveAccounts();
+
+    broadcastToRoomExcept(newRoom, `[MOVE] ${name} enters from ${oppositeDirection(dir)}.`, socket);
+
+    sendRoom(socket, newRoom);
 }
 
 // ===================================
