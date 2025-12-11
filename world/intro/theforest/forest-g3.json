@@ -1,16 +1,20 @@
-{
-  "forest-g3": {
-    "title": "Forest Clearing",
-    "text": [
-      "A quiet forest clearing filled with drifting silver fog.",
-      "A small pond reflects the faint sky between branches.",
-      "TRwo lone rock sits half-buried in moss."
-    ],
-    "objects": ["rock", "pond"],
-    "exits": {
-      "north": "g4",
-      "east": "g2"
+"objects": {
+    "rock": {
+        "emoji": "🪨",
+        "desc": "This is potentially food or a weapon.",
+        "descByRace": {
+            "goblin": "This is potentially food or a weapon.",
+            "human": "It's a rock.",
+            "elf": "You sense the faintest arcane shimmer on the rock."
+        }
     },
-    "background": "g3_bg.png"
-  }
+    "pond": {
+        "emoji": "💧",
+        "desc": "A calm pond reflecting a broken strip of sky.",
+        "descByRace": {
+            "goblin": "Water hides hunger or danger… hard to tell.",
+            "human": "A simple pond, calm and cool.",
+            "elf": "A quiet pond touched by subtle forest magic."
+        }
+    }
 }
