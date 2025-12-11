@@ -318,16 +318,40 @@ function handleText(socket, input) {
     }
 
     const [cmd, ...rest] = input.split(" ");
-    const arg = rest.join(" ").trim();
+    const arg   = rest.join(" ").trim();
+    const lower = cmd.toLowerCase();
 
-const lower = cmd.toLowerCase();
+    // --- BUILT-IN COMMAND: WHO ---
+    if (lower === "who") {
+        const names = [];
 
-if (commands[lower]) {
-    return commands[lower].execute(socket, sess, accounts, world, arg);
+        for (const [sock, s] of sessions.entries()) {
+            if (s.state === "ready") {
+                const acc = accounts[s.loginId];
+                if (acc && acc.name) {
+                    names.push(acc.name);
+                }
+            }
+        }
+
+        if (names.length <= 1) {
+            return sendSystem(socket, "No other presences stir in this world.");
+        }
+
+        const list = names.map(n => `• ${n}`).join("\n");
+        return sendSystem(socket,
+            "Others breathing in this world:\n" + list
+        );
+    }
+
+    // --- FALL THROUGH TO COMMANDS FOLDER ---
+    if (commands[lower]) {
+        return commands[lower].execute(socket, sess, accounts, world, arg);
+    }
+
+    sendSystem(socket, "Nothing responds.");
 }
 
-sendSystem(socket, "Nothing responds.");
-}
 
 // ===================================
 // MOVEMENT HANDLER
