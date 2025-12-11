@@ -1,44 +1,33 @@
 module.exports = {
     name: "look",
     aliases: ["l"],
+    description: "Look at your surroundings or an object.",
 
     execute(socket, sess, accounts, world, arg) {
-        const room = world[sess.room];
-        if (!room) {
-            return socket.send(JSON.stringify({ type: "system", msg: "The world frays here." }));
-        }
-
-        // No argument → look at room
+        // If no object specified → refresh full room view
         if (!arg) {
-            return socket.send(JSON.stringify({
-                type: "system",
-                msg: room.text.join("\n\n")
-            }));
+            return sendRoom(socket, sess.room);
         }
 
-        // Look at object
-        const objName = arg.toLowerCase();
-        const object = room.objects?.[objName];
-
-        if (!object) {
-            return socket.send(JSON.stringify({
-                type: "system",
-                msg: `You see no such thing.`
-            }));
-        }
-
+        const room = world[sess.room];
         const acc = accounts[sess.loginId];
-        const race = acc?.race;
+        const race = acc ? acc.race : "human";
 
-        // Race-specific text
-        let desc =
-            (object.textByRace && race && object.textByRace[race]) ||
-            object.text ||
+        // Does the room contain this object?
+        if (!room.objects || !room.objects[arg]) {
+            return sendSystem(socket, "You see no such thing.");
+        }
+
+        const obj = room.objects[arg];
+        const desc =
+            (obj.descByRace && obj.descByRace[race]) ||
+            obj.desc ||
             "You see nothing special.";
 
-        socket.send(JSON.stringify({
-            type: "system",
-            msg: desc
-        }));
+        return sendSystem(socket, desc);
     }
 };
+
+// REQUIRED HELPERS
+const { sessions } = require("../server");
+const { sendRoom, sendSystem } = require("../send_utils");
