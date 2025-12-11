@@ -6,6 +6,8 @@
 
 const WebSocket = require("ws");
 const fs = require("fs");
+const serverState = require("./server_state");
+
 // ===================================
 // Load commands from ./commands
 // ===================================
@@ -517,4 +519,7 @@ module.exports = {
     sendSystem
 };
 
+serverState.sessions = sessions;
+serverState.sendRoom = sendRoom;
+serverState.sendSystem = sendSystem;
 
