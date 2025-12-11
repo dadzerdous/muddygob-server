@@ -11,6 +11,6 @@
       "north": "g4",
       "east": "g2"
     },
-    "background": "g3_bg"
+    "background": "g3_bg.png"
   }
 }
