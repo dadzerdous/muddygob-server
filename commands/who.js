@@ -1,9 +1,4 @@
-// ===============================================
 // commands/who.js
-// ===============================================
-
-const { sessions } = require("../server_state");
-
 module.exports = {
     name: "who",
     aliases: [],
@@ -12,7 +7,8 @@ module.exports = {
     execute(socket, sess, accounts, world, arg) {
         const names = [];
 
-        for (const [sock, s] of sessions.entries()) {
+        // Loop through all sessions from server.js
+        for (const [sock, s] of global.sessions.entries()) {
             if (s.state === "ready") {
                 const acc = accounts[s.loginId];
                 if (acc && acc.name) {
@@ -22,19 +18,17 @@ module.exports = {
         }
 
         if (names.length <= 1) {
-            // nobody but you
             return socket.send(JSON.stringify({
                 type: "system",
                 msg: "No other presences stir in this world."
             }));
         }
 
-        // Build formatted list with <br>
-        const list = names.map(n => `• ${n}`).join("<br>");
+        const list = names.map(n => `• ${n}`).join("\n");
 
-        return socket.send(JSON.stringify({
+        socket.send(JSON.stringify({
             type: "system",
-            msg: `Others breathing in this world:<br>${list}`
+            msg: "Others breathing in this world:\n" + list
         }));
     }
 };
