@@ -149,12 +149,13 @@ wss.on("connection", (socket) => {
     console.log("New connection");
 
     sessions.set(socket, {
-        broadcastPlayerCount();
-
         state: "connected",
         loginId: null,
         room: START_ROOM
     });
+
+    // Call *after* setting the session
+    broadcastPlayerCount();
 
     sendSystem(socket, "Connected to MuddyGob. Press New or Login.");
 
@@ -164,12 +165,12 @@ wss.on("connection", (socket) => {
     });
 
     socket.on("close", () => {
-        broadcastPlayerCount();
-
-        console.log("Connection closed");
         sessions.delete(socket);
+        broadcastPlayerCount();
+        console.log("Connection closed");
     });
 });
+
 
 // ===================================
 // JSON before text
