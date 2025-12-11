@@ -298,43 +298,73 @@ function handleText(socket, input) {
 
     switch (cmd.toLowerCase()) {
 
-case "go":
-    return handleMove(socket, arg);
-
-case "move":
-    return handleMove(socket, arg);
-
+        // Move / Go commands merged
+        case "go":
+        case "move":
+            return handleMove(socket, arg);
 
 
-case "say": {
-    const acc = accounts[sess.loginId];
-    const name = acc ? acc.name : "Someone";
-    const msg = arg || "...";
+        // ------------------------------------------------------
+        // SAY
+        // ------------------------------------------------------
+        case "say": {
+            const acc = accounts[sess.loginId];
+            const name = acc ? acc.name : "Someone";
+            const msg = arg || "...";
 
-    if (isMuted(sess)) {
-        return sendSystem(socket, `[SYSTEM] Your throat is too raw to speak yet.`);
-    }
+            if (isMuted(sess)) {
+                return sendSystem(socket, `[SYSTEM] Your throat is too raw to speak yet.`);
+            }
 
-    recordSpeech(sess);
+            recordSpeech(sess);
 
-    broadcastToRoom(sess.room, `[PLAYER] ${name} says:`);
-    broadcastToRoom(sess.room, `[SAY] "${msg}"`);
-    return;
-}
+            // YOU see "You say:"
+            socket.send(JSON.stringify({
+                type: "chat",
+                from: "you",
+                name,
+                msg
+            }));
+
+            // OTHERS see "Name says:"
+            broadcastToRoomExcept(
+                sess.room,
+                JSON.stringify({
+                    type: "chat",
+                    from: "other",
+                    name,
+                    msg
+                }),
+                socket
+            );
+
+            return;
+        }
 
 
-    case "look":
-case "l": {
-    sendRoom(socket, sess.room);
-    sendPlayersInRoom(socket, sess.room);
-    return;
-}
+        // ------------------------------------------------------
+        // LOOK
+        // ------------------------------------------------------
+        case "look":
+        case "l": {
+            sendRoom(socket, sess.room);
+            sendPlayersInRoom(socket, sess.room);
+            return;
+        }
 
-
+        // ------------------------------------------------------
+        // DEFAULT FALLBACK
+        // ------------------------------------------------------
         default:
             sendSystem(socket, "Nothing responds.");
     }
 }
+
+
+
+// ===================================
+// MOVEMENT HANDLER
+// ===================================
 function handleMove(socket, arg) {
     const sess = sessions.get(socket);
     const acc = accounts[sess.loginId];
@@ -350,16 +380,20 @@ function handleMove(socket, arg) {
     const oldRoom = sess.room;
     const newRoom = room.exits[dir];
 
+    // notify others in old room
     broadcastToRoomExcept(oldRoom, `[MOVE] ${name} leaves ${dir}.`, socket);
 
+    // move player
     sess.room = newRoom;
     acc.lastRoom = newRoom;
     saveAccounts();
 
+    // notify others in new room
     broadcastToRoomExcept(newRoom, `[MOVE] ${name} enters from ${oppositeDirection(dir)}.`, socket);
 
     sendRoom(socket, newRoom);
 }
+
 
 // ===================================
 // Send helpers
