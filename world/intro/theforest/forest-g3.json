@@ -1,20 +1,16 @@
 {
   "forest-g3": {
     "title": "Forest Clearing",
-
     "text": [
       "A quiet forest clearing filled with drifting silver fog.",
       "A small pond reflects the faint sky between branches.",
-      "Two lone rock sits half-buried in moss."
+      "A lone rock sits half-buried in moss."
     ],
-
     "objects": ["rock", "pond"],
-
     "exits": {
-      "north": "forest-blackness",
-      "east": "forest-deeper"
+      "north": "g4",
+      "east": "g2"
     },
-
-    "background": "https://github.com/dadzerdous/muddygob/blob/main/images/g3_bg.png"
+    "background": "forest-clearing.png"
   }
 }
