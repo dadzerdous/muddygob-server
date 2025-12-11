@@ -62,32 +62,32 @@ function saveAccounts() {
 
 
 // ===================================
-// Load world/*.json
+// Recursively load world/*.json
 // ===================================
-function loadWorld() {
-    const world = {};
+function loadWorldRecursive(dir, world = {}) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
 
-    if (!fs.existsSync("./world")) {
-        console.error("NO ./world DIRECTORY FOUND!");
-        return world;
-    }
+    for (const entry of entries) {
+        const fullPath = `${dir}/${entry.name}`;
 
-    const files = fs.readdirSync("./world");
-    for (const file of files) {
-        if (file.endsWith(".json")) {
+        if (entry.isDirectory()) {
+            loadWorldRecursive(fullPath, world);
+        } else if (entry.isFile() && entry.name.endsWith(".json")) {
             try {
-                const data = JSON.parse(fs.readFileSync("./world/" + file, "utf8"));
+                const data = JSON.parse(fs.readFileSync(fullPath, "utf8"));
                 Object.assign(world, data);
             } catch (e) {
-                console.error("FAILED TO LOAD ROOM FILE:", file, e);
+                console.error("FAILED TO LOAD ROOM FILE:", fullPath, e);
             }
         }
     }
+
     return world;
 }
 
-const world = loadWorld();
+const world = loadWorldRecursive("./world");
 console.log("Loaded rooms:", Object.keys(world));
+
 
 // ===================================
 // WebSocket Server
