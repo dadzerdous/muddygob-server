@@ -6,6 +6,28 @@
 
 const WebSocket = require("ws");
 const fs = require("fs");
+// ===================================
+// Load commands from ./commands
+// ===================================
+const commands = {};
+const commandFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
+
+for (const file of commandFiles) {
+    try {
+        const cmd = require(`./commands/${file}`);
+        commands[cmd.name] = cmd;
+
+        if (cmd.aliases) {
+            for (const a of cmd.aliases) {
+                commands[a] = cmd;
+            }
+        }
+    } catch (e) {
+        console.error("[COMMANDS] Failed to load:", file, e);
+    }
+}
+
+console.log("[COMMANDS] Loaded:", Object.keys(commands));
 
 const ACCOUNT_PATH = "/tmp/accounts.json";
 const START_ROOM = "g3";
@@ -296,71 +318,14 @@ function handleText(socket, input) {
     const [cmd, ...rest] = input.split(" ");
     const arg = rest.join(" ").trim();
 
-    switch (cmd.toLowerCase()) {
+const lower = cmd.toLowerCase();
 
-        // Move / Go commands merged
-        case "go":
-        case "move":
-            return handleMove(socket, arg);
-
-
-        // ------------------------------------------------------
-        // SAY
-        // ------------------------------------------------------
-        case "say": {
-            const acc = accounts[sess.loginId];
-            const name = acc ? acc.name : "Someone";
-            const msg = arg || "...";
-
-            if (isMuted(sess)) {
-                return sendSystem(socket, `[SYSTEM] Your throat is too raw to speak yet.`);
-            }
-
-            recordSpeech(sess);
-
-            // YOU see "You say:"
-            socket.send(JSON.stringify({
-                type: "chat",
-                from: "you",
-                name,
-                msg
-            }));
-
-            // OTHERS see "Name says:"
-            broadcastToRoomExcept(
-                sess.room,
-                JSON.stringify({
-                    type: "chat",
-                    from: "other",
-                    name,
-                    msg
-                }),
-                socket
-            );
-
-            return;
-        }
-
-
-        // ------------------------------------------------------
-        // LOOK
-        // ------------------------------------------------------
-        case "look":
-        case "l": {
-            sendRoom(socket, sess.room);
-            sendPlayersInRoom(socket, sess.room);
-            return;
-        }
-
-        // ------------------------------------------------------
-        // DEFAULT FALLBACK
-        // ------------------------------------------------------
-        default:
-            sendSystem(socket, "Nothing responds.");
-    }
+if (commands[lower]) {
+    return commands[lower].execute(socket, sess, accounts, world, arg);
 }
 
-
+sendSystem(socket, "Nothing responds.");
+}
 
 // ===================================
 // MOVEMENT HANDLER
