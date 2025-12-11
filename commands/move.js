@@ -1,34 +1,52 @@
 module.exports = {
     name: "move",
-    aliases: ["go"],
+    aliases: ["go", "walk", "mv", "m", "g"],
+    description: "Move to another room.",
+
     execute(socket, sess, accounts, world, arg) {
-        if (!arg) {
-            return socket.send(JSON.stringify({ type: "system", msg: "Move where?" }));
-        }
+        const sendSystem = msg =>
+            socket.send(JSON.stringify({ type: "system", msg }));
 
-        const dir = arg.toLowerCase();
+        if (!arg) return sendSystem("Move where?");
+
+        const dirMap = {
+            n: "north",
+            north: "north",
+            up: "north",
+
+            s: "south",
+            south: "south",
+            down: "south",
+
+            e: "east",
+            east: "east",
+
+            w: "west",
+            west: "west",
+            left: "west",
+            right: "east"
+        };
+
+        const dir = dirMap[arg.toLowerCase()];
+        if (!dir) return sendSystem("That direction makes no sense.");
+
         const room = world[sess.room];
-
-        if (!room || !room.exits || !room.exits[dir]) {
-            return socket.send(JSON.stringify({ type: "system", msg: "You cannot go that way." }));
+        if (!room || !room.exits[dir]) {
+            return sendSystem("You cannot go that way.");
         }
 
-        const newRoom = room.exits[dir];
-        sess.room = newRoom;
+        sess.room = room.exits[dir];
+        accounts[sess.loginId].lastRoom = sess.room;
 
-        if (accounts[sess.loginId]) {
-            accounts[sess.loginId].lastRoom = newRoom;
-        }
-
-        const newRoomObj = world[newRoom];
-
+        // load new room
+        const newRoom = world[sess.room];
         socket.send(JSON.stringify({
             type: "room",
-            id: newRoom,
-            title: newRoomObj.title,
-            desc: newRoomObj.text,
-            exits: Object.keys(newRoomObj.exits || {}),
-            background: newRoomObj.background || null
+            id: sess.room,
+            title: newRoom.title,
+            desc: newRoom.text,
+            exits: Object.keys(newRoom.exits),
+            background: newRoom.background || null
         }));
     }
 };
