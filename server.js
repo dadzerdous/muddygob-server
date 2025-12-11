@@ -149,6 +149,8 @@ wss.on("connection", (socket) => {
     console.log("New connection");
 
     sessions.set(socket, {
+        broadcastPlayerCount();
+
         state: "connected",
         loginId: null,
         room: START_ROOM
@@ -162,6 +164,8 @@ wss.on("connection", (socket) => {
     });
 
     socket.on("close", () => {
+        broadcastPlayerCount();
+
         console.log("Connection closed");
         sessions.delete(socket);
     });
@@ -188,6 +192,11 @@ function handleIncoming(socket, raw) {
 function handleJson(socket, data) {
     const sess = sessions.get(socket);
     if (!sess) return;
+    // Handle heartbeat
+if (data.type === "ping") {
+    socket.send("pong");
+    return;
+}
 
     switch (data.type) {
 
@@ -389,6 +398,18 @@ function handleMove(socket, arg) {
 // ===================================
 // Send helpers
 // ===================================
+
+function broadcastPlayerCount() {
+    const count = [...sessions.values()].filter(s => s.state === "ready").length;
+
+    for (const [sock, sess] of sessions.entries()) {
+        sock.send(JSON.stringify({
+            type: "players_online",
+            count
+        }));
+    }
+}
+
 
 function oppositeDirection(dir) {
     const opposites = {
