@@ -490,3 +490,10 @@ function isMuted(sess) {
 
 module.exports.sessions = sessions;
 
+module.exports = {
+    sessions,
+    sendRoom,
+    sendSystem
+};
+
+
