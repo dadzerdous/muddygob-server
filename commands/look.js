@@ -1,38 +1,44 @@
 module.exports = {
     name: "look",
-    aliases: ["l", "examine", "inspect"],
-    description: "Look at your surroundings.",
+    aliases: ["l"],
 
     execute(socket, sess, accounts, world, arg) {
-        const sendSystem = msg =>
-            socket.send(JSON.stringify({ type: "system", msg }));
-
         const room = world[sess.room];
-        if (!room) return sendSystem("The world fades here…");
-
-        // If looking at an object
-        if (arg) {
-            const key = arg.toLowerCase();
-
-            if (room.objects && room.objects[key]) {
-                const obj = room.objects[key];
-                const race = accounts[sess.loginId].race;
-
-                const desc =
-                    (obj.textByRace && obj.textByRace[race]) ||
-                    obj.text ||
-                    "You see nothing special.";
-
-                return sendSystem(desc);
-            }
-
-            return sendSystem("You see no such thing.");
+        if (!room) {
+            return socket.send(JSON.stringify({ type: "system", msg: "The world frays here." }));
         }
 
-        // Looking at the room
-        const lines = room.text.join("\n");
+        // No argument → look at room
+        if (!arg) {
+            return socket.send(JSON.stringify({
+                type: "system",
+                msg: room.text.join("\n\n")
+            }));
+        }
 
-        sendSystem(room.title + "\n\n" + lines + "\n\nExits: " +
-            Object.keys(room.exits).join(", "));
+        // Look at object
+        const objName = arg.toLowerCase();
+        const object = room.objects?.[objName];
+
+        if (!object) {
+            return socket.send(JSON.stringify({
+                type: "system",
+                msg: `You see no such thing.`
+            }));
+        }
+
+        const acc = accounts[sess.loginId];
+        const race = acc?.race;
+
+        // Race-specific text
+        let desc =
+            (object.textByRace && race && object.textByRace[race]) ||
+            object.text ||
+            "You see nothing special.";
+
+        socket.send(JSON.stringify({
+            type: "system",
+            msg: desc
+        }));
     }
 };
