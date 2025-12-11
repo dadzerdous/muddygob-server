@@ -304,16 +304,6 @@ case "move": {
 }
 
 
-            const acc = accounts[sess.loginId];
-            if (acc) {
-                acc.lastRoom = sess.room;
-                saveAccounts();
-            }
-
-            sendRoom(socket, sess.room);
-            return;
-        }
-
 case "say": {
     const acc = accounts[sess.loginId];
     const name = acc ? acc.name : "Someone";
