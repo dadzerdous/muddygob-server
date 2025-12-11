@@ -97,13 +97,16 @@ function buildPronounObject(key) {
 // ===================================
 // BROADCAST CHAT TO ROOM
 // ===================================
-function broadcastToRoom(roomId, msg) {
+function broadcastToRoomExcept(roomId, msg, exceptSocket) {
     for (const [sock, sess] of sessions.entries()) {
-        if (sess.room === roomId && sess.state === "ready") {
+        if (sock !== exceptSocket &&
+            sess.room === roomId &&
+            sess.state === "ready") {
             sock.send(JSON.stringify({ type: "system", msg }));
         }
     }
 }
+
 
 // ===================================
 // Handle each incoming connection
@@ -269,15 +272,37 @@ function handleText(socket, input) {
 
     switch (cmd.toLowerCase()) {
 
-        case "move": {
-            if (!arg) return sendSystem(socket, "Move where?");
-            const room = world[sess.room];
+case "move": {
+    if (!arg) return sendSystem(socket, "Move where?");
+    const acc = accounts[sess.loginId];
+    const name = acc ? acc.name : "Someone";
 
-            if (!room || !room.exits || !room.exits[arg]) {
-                return sendSystem(socket, "You cannot go that way.");
-            }
+    const room = world[sess.room];
+    if (!room || !room.exits || !room.exits[arg]) {
+        return sendSystem(socket, "You cannot go that way.");
+    }
 
-            sess.room = room.exits[arg];
+    const oldRoom = sess.room;
+    const newRoom = room.exits[arg];
+
+    // Announce departure to others
+    broadcastToRoomExcept(oldRoom, `[MOVE] ${name} leaves ${arg}.`, socket);
+
+    // move player
+    sess.room = newRoom;
+
+    // save last location
+    acc.lastRoom = newRoom;
+    saveAccounts();
+
+    // Announce arrival to others
+    broadcastToRoomExcept(newRoom, `[MOVE] ${name} enters from ${oppositeDirection(arg)}.`, socket);
+
+    // send room info to mover
+    sendRoom(socket, newRoom);
+    return;
+}
+
 
             const acc = accounts[sess.loginId];
             if (acc) {
@@ -289,15 +314,30 @@ function handleText(socket, input) {
             return;
         }
 
-        case "say": {
-            const acc = accounts[sess.loginId];
-            const name = acc ? acc.name : "Someone";
-            const text = arg || "...";
+case "say": {
+    const acc = accounts[sess.loginId];
+    const name = acc ? acc.name : "Someone";
+    const msg = arg || "...";
 
-            // NEW: broadcast to all in room
-            broadcastToRoom(sess.room, `${name} says: "${text}"`);
-            return;
-        }
+    if (isMuted(sess)) {
+        return sendSystem(socket, `[SYSTEM] Your throat is too raw to speak yet.`);
+    }
+
+    recordSpeech(sess);
+
+    broadcastToRoom(sess.room, `[PLAYER] ${name} says:`);
+    broadcastToRoom(sess.room, `[SAY] "${msg}"`);
+    return;
+}
+
+
+    case "look":
+case "l": {
+    sendRoom(socket, sess.room);
+    sendPlayersInRoom(socket, sess.room);
+    return;
+}
+
 
         default:
             sendSystem(socket, "Nothing responds.");
@@ -307,6 +347,17 @@ function handleText(socket, input) {
 // ===================================
 // Send helpers
 // ===================================
+
+function oppositeDirection(dir) {
+    const opposites = {
+        north: "south",
+        south: "north",
+        east: "west",
+        west: "east"
+    };
+    return opposites[dir] || "somewhere";
+}
+
 function sendSystem(socket, msg) {
     socket.send(JSON.stringify({ type: "system", msg }));
 }
@@ -337,3 +388,49 @@ function sendRoom(socket, id) {
         background: room.background || null
     }));
 }
+function sendPlayersInRoom(socket, roomId) {
+    const names = [];
+
+    for (const [sock, sess] of sessions.entries()) {
+        if (sess.room === roomId && sess.state === "ready") {
+            const acc = accounts[sess.loginId];
+            if (acc) names.push(acc.name);
+        }
+    }
+
+    socket.send(JSON.stringify({
+        type: "room_players",
+        players: names
+    }));
+}
+
+function recordSpeech(sess) {
+    const now = Date.now();
+    if (!sess.spamTimes) sess.spamTimes = [];
+
+    // Keep last 10 seconds
+    sess.spamTimes = sess.spamTimes.filter(t => now - t < 10000);
+    sess.spamTimes.push(now);
+
+    if (sess.spamTimes.length >= 6) {
+        // escalate punishment
+        if (!sess.muteLevel) sess.muteLevel = 1;
+
+        const durations = {
+            1: 5000,   // 5s
+            2: 15000,  // 15s
+            3: 30000,  // 30s
+        };
+
+        const mute = durations[sess.muteLevel] || 60000; // fallback 1 min
+        sess.mutedUntil = now + mute;
+
+        sess.muteLevel++; // next time is worse
+    }
+}
+
+function isMuted(sess) {
+    return sess.mutedUntil && Date.now() < sess.mutedUntil;
+}
+
+
