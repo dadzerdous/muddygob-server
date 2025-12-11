@@ -1,52 +1,50 @@
 module.exports = {
     name: "move",
-    aliases: ["go", "walk", "mv", "m", "g"],
-    description: "Move to another room.",
+    aliases: ["go", "walk", "m"],
 
     execute(socket, sess, accounts, world, arg) {
-        const sendSystem = msg =>
-            socket.send(JSON.stringify({ type: "system", msg }));
-
-        if (!arg) return sendSystem("Move where?");
+        if (!arg) return socket.send(JSON.stringify({
+            type: "system",
+            msg: "Move where?"
+        }));
 
         const dirMap = {
             n: "north",
             north: "north",
-            up: "north",
-
             s: "south",
             south: "south",
-            down: "south",
-
             e: "east",
             east: "east",
-
             w: "west",
-            west: "west",
-            left: "west",
-            right: "east"
+            west: "west"
         };
 
         const dir = dirMap[arg.toLowerCase()];
-        if (!dir) return sendSystem("That direction makes no sense.");
-
-        const room = world[sess.room];
-        if (!room || !room.exits[dir]) {
-            return sendSystem("You cannot go that way.");
+        if (!dir) {
+            return socket.send(JSON.stringify({
+                type: "system",
+                msg: "Unknown direction."
+            }));
         }
 
-        sess.room = room.exits[dir];
-        accounts[sess.loginId].lastRoom = sess.room;
+        const room = world[sess.room];
+        if (!room || !room.exits || !room.exits[dir]) {
+            return socket.send(JSON.stringify({
+                type: "system",
+                msg: "You cannot go that way."
+            }));
+        }
 
-        // load new room
-        const newRoom = world[sess.room];
+        const newRoom = room.exits[dir];
+        sess.room = newRoom;
+
         socket.send(JSON.stringify({
             type: "room",
-            id: sess.room,
-            title: newRoom.title,
-            desc: newRoom.text,
-            exits: Object.keys(newRoom.exits),
-            background: newRoom.background || null
+            id: newRoom,
+            title: world[newRoom].title,
+            desc: world[newRoom].text,
+            exits: Object.keys(world[newRoom].exits),
+            background: world[newRoom].background || null
         }));
     }
 };
