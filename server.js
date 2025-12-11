@@ -513,7 +513,3 @@ function isMuted(sess) {
 }
 
 
-serverState.sessions = sessions;
-serverState.sendRoom = sendRoom;
-serverState.sendSystem = sendSystem;
-
