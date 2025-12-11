@@ -513,12 +513,6 @@ function isMuted(sess) {
 }
 
 
-module.exports = {
-    sessions,
-    sendRoom,
-    sendSystem
-};
-
 serverState.sessions = sessions;
 serverState.sendRoom = sendRoom;
 serverState.sendSystem = sendSystem;
