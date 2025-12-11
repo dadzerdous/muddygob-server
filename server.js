@@ -384,12 +384,23 @@ function sendRoom(socket, id) {
     const sess = sessions.get(socket);
     if (!sess) return;
 
-    const acc = accounts[sess.loginId];
+    const acc  = accounts[sess.loginId];
     const race = acc ? acc.race : null;
 
     const room = world[id];
     if (!room) {
         return sendSystem(socket, "The world frays here (missing room).");
+    }
+
+    // --- NEW: collect players in this room ---
+    const playersHere = [];
+    for (const [sock, s] of sessions.entries()) {
+        if (s.room === id && s.state === "ready") {
+            const a = accounts[s.loginId];
+            if (a && a.name) {
+                playersHere.push(a.name);
+            }
+        }
     }
 
     const desc =
@@ -403,9 +414,11 @@ function sendRoom(socket, id) {
         title: room.title || "Somewhere",
         desc,
         exits: Object.keys(room.exits || {}),
-        background: room.background || null
+        background: room.background || null,
+        players: playersHere          // 👈 NEW FIELD
     }));
 }
+
 function sendPlayersInRoom(socket, roomId) {
     const names = [];
 
