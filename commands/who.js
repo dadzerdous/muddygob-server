@@ -1,3 +1,9 @@
+// ===============================================
+// commands/who.js
+// ===============================================
+
+const { sessions } = require("../server_state");
+
 module.exports = {
     name: "who",
     aliases: [],
@@ -5,11 +11,6 @@ module.exports = {
 
     execute(socket, sess, accounts, world, arg) {
         const names = [];
-
-        for (const [sock, s] of sess.map.entries?.() || []) {}
-
-        // sessions isn't passed — so pull from module scope
-        const { sessions } = require("../server_state");
 
         for (const [sock, s] of sessions.entries()) {
             if (s.state === "ready") {
@@ -21,16 +22,19 @@ module.exports = {
         }
 
         if (names.length <= 1) {
+            // nobody but you
             return socket.send(JSON.stringify({
                 type: "system",
                 msg: "No other presences stir in this world."
             }));
         }
 
-        const list = names.map(n => `• ${n}`).join("\n");
-        socket.send(JSON.stringify({
+        // Build formatted list with <br>
+        const list = names.map(n => `• ${n}`).join("<br>");
+
+        return socket.send(JSON.stringify({
             type: "system",
-            msg: "Others breathing in this world:\n" + list
+            msg: `Others breathing in this world:<br>${list}`
         }));
     }
 };
