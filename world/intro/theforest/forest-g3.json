@@ -1,1 +1,41 @@
 
+{
+  "forest-g3": {
+    "title": "Forest Clearing",
+    "text": [
+      "A quiet clearing opens beneath a tangle of old branches.",
+      "A faint breeze ripples the surface of a nearby pond.",
+      "A lonely rock waits at the center of the clearing."
+    ],
+    "objects": {
+      "rock": {
+        "name": "rock",
+        "emoji": "🪨",
+        "actions": ["look", "take"],
+        "lookText": {
+          "goblin": "The rock looks throwable. Very throwable.",
+          "elf": "A dull stone… but faintly touched by old magic.",
+          "human": "Just a rock. Maybe useful."
+        }
+      },
+
+      "pond": {
+        "name": "pond",
+        "emoji": "💧",
+        "actions": ["look"],
+        "lookText": {
+          "goblin": "A fish surfaces and you swear it's laughing at you.",
+          "elf": "Clear water, touched by moonlight even during the day.",
+          "human": "A peaceful pond, nothing more."
+        }
+      }
+    },
+
+    "exits": {
+      "north": "forest-g2",
+      "east":  "forest-g4"
+    },
+
+    "background": "forest-clearing.png"
+  }
+}
