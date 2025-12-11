@@ -1,1 +1,12 @@
 
+{
+  "pond": {
+    "emoji": "🟦",
+    "actions": ["look"],
+    "textByRace": {
+      "goblin": "A small pond. Something might be living in there... or edible.",
+      "human": "A quiet pond reflecting the sky.",
+      "elf": "The water glows faintly with natural magic."
+    }
+  }
+}
