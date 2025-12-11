@@ -30,7 +30,7 @@ for (const file of commandFiles) {
 console.log("[COMMANDS] Loaded:", Object.keys(commands));
 
 const ACCOUNT_PATH = "/tmp/accounts.json";
-const START_ROOM = "g3";
+const START_ROOM = "forest-g3";
 
 // ===================================
 // Load or create accounts.json (+ logs)
