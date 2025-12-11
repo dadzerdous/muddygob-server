@@ -261,6 +261,22 @@ function handleJson(socket, data) {
 // ===================================
 // TEXT COMMANDS
 // ===================================
+
+function normalizeDir(dir) {
+    const map = {
+        n: "north",
+        s: "south",
+        e: "east",
+        w: "west",
+        north: "north",
+        south: "south",
+        east: "east",
+        west: "west"
+    };
+    return map[dir.toLowerCase()] || dir.toLowerCase();
+}
+
+
 function handleText(socket, input) {
     const sess = sessions.get(socket);
     if (!sess || sess.state !== "ready") {
@@ -276,14 +292,18 @@ case "move": {
     if (!arg) return sendSystem(socket, "Move where?");
     const acc = accounts[sess.loginId];
     const name = acc ? acc.name : "Someone";
+    const dir = normalizeDir(arg);
+
 
     const room = world[sess.room];
-    if (!room || !room.exits || !room.exits[arg]) {
+if (!room.exits || !room.exits[dir]) {
+
         return sendSystem(socket, "You cannot go that way.");
     }
 
     const oldRoom = sess.room;
-    const newRoom = room.exits[arg];
+    const newRoom = room.exits[dir];
+
 
     // Announce departure to others
     broadcastToRoomExcept(oldRoom, `[MOVE] ${name} leaves ${arg}.`, socket);
