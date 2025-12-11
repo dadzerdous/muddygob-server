@@ -96,6 +96,8 @@ const wss = new WebSocket.Server({ port: 9000 });
 console.log("MuddyGob server running on port 9000");
 
 const sessions = new Map(); // socket -> { state, loginId, room }
+global.sessions = sessions;
+
 
 // Races + allowed pronouns
 const RACE_OPTIONS = ["goblin", "human", "elf"];
