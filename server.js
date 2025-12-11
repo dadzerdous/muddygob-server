@@ -510,7 +510,6 @@ function isMuted(sess) {
     return sess.mutedUntil && Date.now() < sess.mutedUntil;
 }
 
-module.exports.sessions = sessions;
 
 module.exports = {
     sessions,
