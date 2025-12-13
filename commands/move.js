@@ -1,12 +1,13 @@
 module.exports = {
     name: "move",
     aliases: ["go", "walk", "m"],
+    description: "Move in a direction.",
 
-    execute(socket, sess, accounts, world, arg) {
-        if (!arg) return socket.send(JSON.stringify({
-            type: "system",
-            msg: "Move where?"
-        }));
+    execute({ socket, sess, accounts, world, sendRoom, sendSystem }, arg) {
+
+        if (!arg) {
+            return sendSystem(socket, "Move where?");
+        }
 
         const dirMap = {
             n: "north",
@@ -21,30 +22,18 @@ module.exports = {
 
         const dir = dirMap[arg.toLowerCase()];
         if (!dir) {
-            return socket.send(JSON.stringify({
-                type: "system",
-                msg: "Unknown direction."
-            }));
+            return sendSystem(socket, "Unknown direction.");
         }
 
         const room = world[sess.room];
         if (!room || !room.exits || !room.exits[dir]) {
-            return socket.send(JSON.stringify({
-                type: "system",
-                msg: "You cannot go that way."
-            }));
+            return sendSystem(socket, "You cannot go that way.");
         }
 
-        const newRoom = room.exits[dir];
-        sess.room = newRoom;
+        // Change rooms
+        sess.room = room.exits[dir];
 
-        socket.send(JSON.stringify({
-            type: "room",
-            id: newRoom,
-            title: world[newRoom].title,
-            desc: world[newRoom].text,
-            exits: Object.keys(world[newRoom].exits),
-            background: world[newRoom].background || null
-        }));
+        // Send new room to player
+        return sendRoom(socket, sess.room);
     }
 };
