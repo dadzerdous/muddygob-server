@@ -357,9 +357,17 @@ function handleText(socket, input) {
     }
 
     // --- FALL THROUGH TO COMMANDS FOLDER ---
-    if (commands[lower]) {
-        return commands[lower].execute(socket, sess, accounts, world, arg);
-    }
+if (commands[lower]) {
+    return commands[lower].execute({
+        socket,
+        sess,
+        accounts,
+        world,
+        sendRoom,
+        sendSystem
+    }, arg);
+}
+
 
     sendSystem(socket, "Nothing responds.");
 }
