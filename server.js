@@ -453,7 +453,7 @@ function sendRoom(socket, id) {
         return sendSystem(socket, "The world frays here (missing room).");
     }
 
-    // --- NEW: collect players in this room ---
+    // --- Collect players in this room ---
     const playersHere = [];
     for (const [sock, s] of sessions.entries()) {
         if (s.room === id && s.state === "ready") {
@@ -464,11 +464,29 @@ function sendRoom(socket, id) {
         }
     }
 
+    // --- Choose correct description (race-based or general) ---
     const desc =
         (room.textByRace && race && room.textByRace[race]) ||
         room.text ||
         ["You see nothing special."];
 
+    // --- NEW: Collect room objects (e.g., rock, pond) ---
+    const objectList = [];
+    if (room.objects) {
+        for (const [name, obj] of Object.entries(room.objects)) {
+            objectList.push({
+                name,
+                emoji: obj.emoji || null,
+                actions: obj.actions || [],
+                desc:
+                    (obj.textByRace && race && obj.textByRace[race]) ||
+                    obj.text ||
+                    null
+            });
+        }
+    }
+
+    // --- Send room to client ---
     socket.send(JSON.stringify({
         type: "room",
         id,
@@ -476,7 +494,8 @@ function sendRoom(socket, id) {
         desc,
         exits: Object.keys(room.exits || {}),
         background: room.background || null,
-        players: playersHere          // 👈 NEW FIELD
+        players: playersHere,
+        objects: objectList     // 👈 NEW — now client sees rock, pond, etc.
     }));
 }
 
