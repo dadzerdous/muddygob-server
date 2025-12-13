@@ -473,13 +473,33 @@ function sendRoom(socket, id) {
         ["You see nothing special."];
 
     // --- NEW: Collect room objects (e.g., rock, pond) ---
-    const objectList = [];
-    if (room.objects) {
-        for (const [name, obj] of Object.entries(room.objects)) {
+const objectList = [];
+if (room.objects) {
+    for (const [name, obj] of Object.entries(room.objects)) {
+
+        // ITEM OBJECT?
+        if (obj.itemId && itemsDB[obj.itemId]) {
+            const def = itemsDB[obj.itemId];
+
             objectList.push({
                 name,
-                emoji: obj.emoji || null,
-                actions: obj.actions || [],
+                type: "item",
+                emoji: def.emoji,
+                actions: def.actions,
+                desc:
+                    (def.textByRace && race && def.textByRace[race]) ||
+                    def.text ||
+                    null
+            });
+        }
+
+        // SCENERY OBJECT?
+        else {
+            objectList.push({
+                name,
+                type: obj.type || "scenery",
+                emoji: obj.emoji || "",
+                actions: obj.actions || ["look"],
                 desc:
                     (obj.textByRace && race && obj.textByRace[race]) ||
                     obj.text ||
@@ -487,6 +507,7 @@ function sendRoom(socket, id) {
             });
         }
     }
+}
 
     // --- Send room to client ---
     socket.send(JSON.stringify({
