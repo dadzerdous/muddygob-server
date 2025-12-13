@@ -1,17 +1,10 @@
-
 // ===============================================
-// core/room.js
+// core/room.js — FIXED
 // ===============================================
 
 const Sessions = require("./sessions");
 const Accounts = require("./accounts");
-const World = require("./world");
-
-// Optional: item definitions
-let itemsDB = {};
-try {
-    itemsDB = require("../world/objects/items.json");
-} catch {}
+const World = require("./world");   // World.rooms, World.items
 
 function oppositeDirection(dir) {
     return {
@@ -29,10 +22,14 @@ function sendRoom(socket, id) {
     const acc = Accounts.data[sess.loginId];
     const race = acc?.race;
 
-    const room = World.data[id];
-    if (!room) return Sessions.sendSystem(socket, "The world frays here (missing room).");
+    const room = World.rooms[id];   // ← 🔥 FIXED
+    if (!room) {
+        return Sessions.sendSystem(socket, "The world frays here (missing room).");
+    }
 
+    // -------------------------------------------
     // Players in room
+    // -------------------------------------------
     const playersHere = [];
     for (const [sock, s] of Sessions.sessions.entries()) {
         if (s.room === id && s.state === "ready") {
@@ -41,20 +38,25 @@ function sendRoom(socket, id) {
         }
     }
 
-    // Room description
+    // -------------------------------------------
+    // Choose description
+    // -------------------------------------------
     const desc =
         (room.textByRace && race && room.textByRace[race]) ||
         room.text ||
         ["You see nothing special."];
 
-    // Build objects
+    // -------------------------------------------
+    // Objects (items or scenery)
+    // -------------------------------------------
     const objectList = [];
+
     if (room.objects) {
         for (const [name, obj] of Object.entries(room.objects)) {
 
-            // Item-based object
-            if (obj.itemId && itemsDB[obj.itemId]) {
-                const def = itemsDB[obj.itemId];
+            // ITEM from /world/items
+            if (obj.itemId && World.items[obj.itemId]) {
+                const def = World.items[obj.itemId];
 
                 objectList.push({
                     name,
@@ -68,7 +70,7 @@ function sendRoom(socket, id) {
                 });
             }
 
-            // Scenery object
+            // SCENERY
             else {
                 objectList.push({
                     name,
@@ -84,6 +86,9 @@ function sendRoom(socket, id) {
         }
     }
 
+    // -------------------------------------------
+    // Send final room packet
+    // -------------------------------------------
     socket.send(JSON.stringify({
         type: "room",
         id,
@@ -96,13 +101,17 @@ function sendRoom(socket, id) {
     }));
 }
 
+// ===============================================
+// MOVEMENT
+// ===============================================
 function handleMove(socket, sess, cmd, arg) {
     const dir = normalizeDirection(cmd, arg);
     if (!dir) return Sessions.sendSystem(socket, "Move where?");
 
-    const room = World.data[sess.room];
-    if (!room || !room.exits || !room.exits[dir])
+    const room = World.rooms[sess.room];   // ← 🔥 FIXED
+    if (!room || !room.exits || !room.exits[dir]) {
         return Sessions.sendSystem(socket, "You cannot go that way.");
+    }
 
     const acc = Accounts.data[sess.loginId];
     const name = acc?.name || "Someone";
@@ -139,3 +148,4 @@ module.exports = {
     handleMove,
     oppositeDirection
 };
+
