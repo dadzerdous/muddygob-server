@@ -1,4 +1,3 @@
-
 {
   "forest-d2": {
     "title": "Blackness",
@@ -8,7 +7,9 @@
 
     "exits": {
       "south": "forest-g3"
-    }
+    },
+
     "background": "forest-clearing.png"
   }
 }
+
