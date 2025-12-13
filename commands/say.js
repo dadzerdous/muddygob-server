@@ -1,28 +1,27 @@
 module.exports = {
     name: "say",
     aliases: ["s"],
+    description: "Speak to everyone in the room.",
 
-    execute(socket, sess, accounts, world, message) {
+    execute({ socket, sess, accounts, world, sendSystem }, message) {
+
         if (!message) {
-            return socket.send(JSON.stringify({
-                type: "system",
-                msg: "Say what?"
-            }));
+            return sendSystem(socket, "Say what?");
         }
 
-        const acc = accounts[sess.loginId];
-        const name = acc?.name || "Someone";
-        const roomId = sess.room;
+        const acc   = accounts[sess.loginId];
+        const name  = acc?.name || "Someone";
+        const room  = sess.room;
 
         // YOU see:
-        socket.send(JSON.stringify({
-            type: "system",
-            msg: `You say: "${message}"`
-        }));
+        sendSystem(socket, `You say: "${message}"`);
 
         // OTHERS see:
-        for (const [sock, other] of sessions.entries()) {
-            if (sock !== socket && other.room === roomId && other.state === "ready") {
+        for (const [sock, other] of global.sessions.entries()) {
+            if (sock !== socket &&
+                other.room === room &&
+                other.state === "ready") {
+
                 sock.send(JSON.stringify({
                     type: "system",
                     msg: `${name} says: "${message}"`
