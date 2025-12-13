@@ -1,47 +1,42 @@
-// commands/help.js
+// ===============================================
+// commands/help.js – MUD-style help system
+// ===============================================
+
 module.exports = {
     name: "help",
     aliases: ["h"],
-    description: "Show available commands.",
 
-    execute({ socket, commands, sendSystem }, arg) {
-        // If they asked about a specific command: help look
+    execute({ sendSystem, commands }, arg) {
+
+        // ------------------------------------------
+        // HELP <command> → detailed help
+        // ------------------------------------------
         if (arg) {
             const key = arg.toLowerCase();
             const cmd = commands[key];
 
-            if (!cmd) {
-                return sendSystem(socket, `No such command: ${arg}`);
+            if (!cmd || !cmd.help) {
+                return sendSystem(`No help available for '${arg}'.`);
             }
 
-            const aliasList = (cmd.aliases && cmd.aliases.length)
-                ? cmd.aliases.join(", ")
-                : "none";
-
             return sendSystem(
-                socket,
-                `📘 ${cmd.name}\nDescription: ${cmd.description || "no description"}\nAliases: ${aliasList}`
+                `📘 HELP: ${cmd.name}\n\n${cmd.help}`
             );
         }
 
-        // Otherwise: show list of all unique commands
-        const unique = [];
-        const seen   = new Set();
-
-        for (const c of Object.values(commands)) {
-            if (!c || !c.name) continue;
-            if (seen.has(c)) continue;
-            seen.add(c);
-            unique.push(c);
-        }
-
-        const list = unique
-            .map(c => `• ${c.name} — ${c.description || "no description"}`)
+        // ------------------------------------------
+        // HELP → list commands only
+        // ------------------------------------------
+        const primary = Object.values(commands)
+            .filter(c => c.name)               // skip broken ones
+            .filter((v, i, a) => a.indexOf(v) === i) // unique
+            .map(c => `• ${c.name}`)
             .join("\n");
 
         return sendSystem(
-            socket,
-            `📘 AVAILABLE COMMANDS:\n${list}\n\nType: help <command> for details.`
+            `📘 AVAILABLE COMMANDS:\n` +
+            primary +
+            `\n\nType: help <command> for details.`
         );
     }
 };
