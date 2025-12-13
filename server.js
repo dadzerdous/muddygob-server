@@ -364,9 +364,14 @@ if (commands[lower]) {
         accounts,
         world,
         sendRoom,
-        sendSystem
+        sendSystem,
+        commands,
+        broadcastToRoomExcept,
+        oppositeDirection,
+        saveAccounts
     }, arg);
 }
+
 
 
     sendSystem(socket, "Nothing responds.");
