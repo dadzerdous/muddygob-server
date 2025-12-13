@@ -94,8 +94,10 @@ console.log("Loaded rooms:", Object.keys(world));
 // ===================================
 // WebSocket Server
 // ===================================
-const wss = new WebSocket.Server({ port: 9000 });
-console.log("MuddyGob server running on port 9000");
+const PORT = process.env.PORT || 9000;
+const wss = new WebSocket.Server({ port: PORT });
+console.log("MuddyGob server running on port", PORT);
+
 
 const sessions = new Map(); // socket -> { state, loginId, room }
 global.sessions = sessions;
