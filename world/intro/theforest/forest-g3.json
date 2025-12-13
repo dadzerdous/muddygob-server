@@ -6,18 +6,17 @@
       "A small pond reflects the faint sky between branches.",
       "A lone rock sits half-buried in moss."
     ],
-"objects": {
-  "rock": {
-    "itemId": "rock"
-    "emoji": "🟦",
-  },
-  "pond": {
-    "type": "scenery",
-    "emoji": "🟦",
-    "text": "A still pond with a single fish that seems to be laughing at you."
-  }
-}
-,
+    "objects": {
+      "rock": {
+        "itemId": "rock",
+        "emoji": "🪨"
+      },
+      "pond": {
+        "type": "scenery",
+        "emoji": "🟦",
+        "text": "A still pond with a single fish that seems to be laughing at you."
+      }
+    },
     "exits": {
       "north": "forest-d2",
       "east": "forest-h3"
