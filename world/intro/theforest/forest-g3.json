@@ -9,6 +9,7 @@
 "objects": {
   "rock": {
     "itemId": "rock"
+    "emoji": "🟦",
   },
   "pond": {
     "type": "scenery",
