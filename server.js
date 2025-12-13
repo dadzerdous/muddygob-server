@@ -211,6 +211,16 @@ if (data.type === "ping") {
             const password = (data.password || "").trim();
             const race = (data.race || "").trim().toLowerCase();
             const pronounKey = (data.pronoun || "").trim().toLowerCase();
+            // Generate a resume token
+const token = Math.random().toString(36).slice(2);
+accounts[loginId].sessionToken = token;
+saveAccounts();
+
+socket.send(JSON.stringify({
+    type: "session_token",
+    token
+}));
+
 
             if (!baseName || !password || !race || !pronounKey) {
                 return sendSystem(socket,
@@ -267,11 +277,46 @@ if (data.type === "ping") {
             sendRoom(socket, START_ROOM);
             return;
         }
+            case "resume": {
+    const token = data.token;
+    if (!token) {
+        return sendSystem(socket, "No session to resume.");
+    }
+
+    // Find which account has this token
+    const loginId = Object.keys(accounts).find(
+        id => accounts[id].sessionToken === token
+    );
+
+    if (!loginId) {
+        return sendSystem(socket, "Session expired.");
+    }
+
+    const acc = accounts[loginId];
+
+    sess.state = "ready";
+    sess.loginId = loginId;
+    sess.room = acc.lastRoom || START_ROOM;
+
+    sendSystem(socket, `Resuming your journey, ${acc.name}.`);
+    sendRoom(socket, sess.room);
+    return;
+}
+
 
         // --- LOGIN ---
         case "try_login": {
             let login = (data.login || "").trim().toLowerCase();
             const password = (data.password || "").trim();
+            const token = Math.random().toString(36).slice(2);
+acc.sessionToken = token;
+saveAccounts();
+
+socket.send(JSON.stringify({
+    type: "session_token",
+    token
+}));
+
 
             if (!login || !password) {
                 return sendSystem(socket,
