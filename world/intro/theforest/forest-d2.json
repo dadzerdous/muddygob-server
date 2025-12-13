@@ -1,0 +1,14 @@
+
+{
+  "forest-g3": {
+    "title": "Blackness",
+    "text": [
+      "So so black
+    ],
+
+    "exits": {
+      "south": "forest-g3",
+    },
+    "background": "forest-clearing.png"
+  }
+}
