@@ -7,7 +7,7 @@
     ],
 
     "exits": {
-      "south": "forest-g3",
+      "south": "forest-g3"
     }
     "background": "forest-clearing.png"
   }
