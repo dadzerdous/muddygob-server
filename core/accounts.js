@@ -111,6 +111,7 @@ function create(socket, sess, data, startRoom) {
 
     const { sendRoom } = require("./room");
     sendRoom(socket, startRoom);
+    return; 
 }
 
 // -----------------------------------------------
