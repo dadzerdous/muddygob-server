@@ -99,6 +99,7 @@ const wss = new WebSocket.Server({ port: PORT });
 console.log("MuddyGob server running on port", PORT);
 
 
+
 const sessions = new Map(); // socket -> { state, loginId, room }
 global.sessions = sessions;
 
@@ -205,151 +206,96 @@ if (data.type === "ping") {
 
     switch (data.type) {
 
-        // --- CREATE ACCOUNT ---
-        case "create_account": {
-            const baseName = (data.name || "").trim();
-            const password = (data.password || "").trim();
-            const race = (data.race || "").trim().toLowerCase();
-            const pronounKey = (data.pronoun || "").trim().toLowerCase();
-            // Generate a resume token
-const token = Math.random().toString(36).slice(2);
-accounts[loginId].sessionToken = token;
-saveAccounts();
+      case "create_account": {
+    const baseName = (data.name || "").trim();
+    const password = (data.password || "").trim();
+    const race = (data.race || "").trim().toLowerCase();
+    const pronounKey = (data.pronoun || "").trim().toLowerCase();
 
-socket.send(JSON.stringify({
-    type: "session_token",
-    token
-}));
-
-
-            if (!baseName || !password || !race || !pronounKey) {
-                return sendSystem(socket,
-                    "That being cannot be created (missing name, password, race, or pronoun)."
-                );
-            }
-
-            // Must be 4–16 letters + apostrophe
-            const NAME_RE = /^[A-Za-z']{4,16}$/;
-            if (!NAME_RE.test(baseName)) {
-                return sendSystem(socket,
-                    "That being cannot be created (name must be 4–16 letters; apostrophes allowed)."
-                );
-            }
-
-            if (!RACE_OPTIONS.includes(race)) {
-                return sendSystem(socket,
-                    "That being cannot be created (its ancestry feels wrong)."
-                );
-            }
-
-            if (!RACE_PRONOUNS[race].includes(pronounKey)) {
-                return sendSystem(socket,
-                    "That being cannot be created (those pronouns do not match this ancestry)."
-                );
-            }
-
-            const keyName = baseName.toLowerCase();
-            const loginId = `${keyName}@${race}.${pronounKey}`;
-
-            if (accounts[loginId]) {
-                return sendSystem(socket,
-                    "That being cannot be created (another exists with this form)."
-                );
-            }
-
-            accounts[loginId] = {
-                name: baseName,
-                password,
-                race,
-                pronounKey,
-                pronouns: buildPronounObject(pronounKey),
-                lastRoom: START_ROOM,
-                createdAt: Date.now()
-            };
-
-            saveAccounts();
-
-            sess.state = "ready";
-            sess.loginId = loginId;
-            sess.room = START_ROOM;
-
-            sendSystem(socket, `A new ${race} awakens as ${baseName}. Your login ID is ${loginId}.`);
-            sendRoom(socket, START_ROOM);
-            return;
-        }
-            case "resume": {
-    const token = data.token;
-    if (!token) {
-        return sendSystem(socket, "No session to resume.");
+    if (!baseName || !password || !race || !pronounKey) {
+        return sendSystem(socket,
+            "That being cannot be created (missing name, password, race, or pronoun)."
+        );
     }
 
-    // Find which account has this token
-    const loginId = Object.keys(accounts).find(
-        id => accounts[id].sessionToken === token
-    );
-
-    if (!loginId) {
-        return sendSystem(socket, "Session expired.");
+    const NAME_RE = /^[A-Za-z']{4,16}$/;
+    if (!NAME_RE.test(baseName)) {
+        return sendSystem(socket,
+            "That being cannot be created (name must be 4–16 letters; apostrophes allowed)."
+        );
     }
 
-    const acc = accounts[loginId];
+    if (!RACE_OPTIONS.includes(race)) {
+        return sendSystem(socket, "That being cannot be created (its ancestry feels wrong).");
+    }
+
+    if (!RACE_PRONOUNS[race].includes(pronounKey)) {
+        return sendSystem(socket, "Those pronouns do not match this ancestry.");
+    }
+
+    const keyName = baseName.toLowerCase();
+    const loginId = `${keyName}@${race}.${pronounKey}`;
+
+    if (accounts[loginId]) {
+        return sendSystem(socket, "That being already exists.");
+    }
+
+    // Generate session resume token
+    const token = Math.random().toString(36).slice(2);
+
+    accounts[loginId] = {
+        name: baseName,
+        password,
+        race,
+        pronounKey,
+        pronouns: buildPronounObject(pronounKey),
+        lastRoom: START_ROOM,
+        sessionToken: token,
+        createdAt: Date.now()
+    };
+
+    saveAccounts();
+
+    socket.send(JSON.stringify({ type: "session_token", token }));
 
     sess.state = "ready";
     sess.loginId = loginId;
-    sess.room = acc.lastRoom || START_ROOM;
+    sess.room = START_ROOM;
 
-    sendSystem(socket, `Resuming your journey, ${acc.name}.`);
-    sendRoom(socket, sess.room);
+    sendSystem(socket, `A new ${race} awakens as ${baseName}.`);
+    sendRoom(socket, START_ROOM);
     return;
 }
 
 
-        // --- LOGIN ---
-        case "try_login": {
-            let login = (data.login || "").trim().toLowerCase();
-            const password = (data.password || "").trim();
-            const token = Math.random().toString(36).slice(2);
-acc.sessionToken = token;
-saveAccounts();
 
-socket.send(JSON.stringify({
-    type: "session_token",
-    token
-}));
+    case "try_login": {
+    let login = (data.login || "").trim().toLowerCase();
+    const password = (data.password || "").trim();
 
-
-            if (!login || !password) {
-                return sendSystem(socket,
-                    "A name and a key phrase are required."
-                );
-            }
-
-            const acc = accounts[login];
-            if (!acc) {
-                return sendSystem(socket,
-                    "No such being exists."
-                );
-            }
-
-            if (acc.password !== password) {
-                return sendSystem(socket,
-                    "The key phrase does not match."
-                );
-            }
-
-            sess.state = "ready";
-            sess.loginId = login;
-            sess.room = acc.lastRoom || START_ROOM;
-
-            sendSystem(socket, `Welcome back, ${acc.name}.`);
-            sendRoom(socket, sess.room);
-            return;
-        }
-
-        default:
-            sendSystem(socket, "The world does not understand that.");
+    if (!login || !password) {
+        return sendSystem(socket, "A name and key phrase are required.");
     }
+
+    const acc = accounts[login];
+    if (!acc) return sendSystem(socket, "No such being exists.");
+    if (acc.password !== password) return sendSystem(socket, "The key phrase does not match.");
+
+    const token = Math.random().toString(36).slice(2);
+    acc.sessionToken = token;
+    saveAccounts();
+
+    socket.send(JSON.stringify({ type: "session_token", token }));
+
+    sess.state = "ready";
+    sess.loginId = login;
+    sess.room = acc.lastRoom || START_ROOM;
+
+    sendSystem(socket, `Welcome back, ${acc.name}.`);
+    sendRoom(socket, sess.room);
+    return;
 }
+
 
 // ===================================
 // TEXT COMMANDS
