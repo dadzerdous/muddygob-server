@@ -1,562 +1,149 @@
-// ============================
-// MuddyGob MUD Server
-// Accounts + Races + Pronouns
-// Room loading + Chat Broadcast
-// ============================
+// ===============================================
+// MuddyGob — CLEAN MODULAR SERVER.JS
+// ===============================================
 
 const WebSocket = require("ws");
 const fs = require("fs");
 
+// ------------------------------
+// Load core modules
+// ------------------------------
+const Accounts = require("./core/accounts");
+const Sessions = require("./core/sessions");
+const World    = require("./core/world");
+const Room     = require("./core/room");
+const Spam     = require("./core/spam");
 
-// ===================================
-// Load commands from ./commands
-// ===================================
+// ------------------------------
+// Load commands folder
+// ------------------------------
 const commands = {};
-const commandFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
+const cmdFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
 
-for (const file of commandFiles) {
+for (const f of cmdFiles) {
     try {
-        const cmd = require(`./commands/${file}`);
+        const cmd = require(`./commands/${f}`);
         commands[cmd.name] = cmd;
 
         if (cmd.aliases) {
-            for (const a of cmd.aliases) {
-                commands[a] = cmd;
-            }
+            for (const a of cmd.aliases) commands[a] = cmd;
         }
-    } catch (e) {
-        console.error("[COMMANDS] Failed to load:", file, e);
+    } catch (err) {
+        console.error("[COMMAND] Failed:", f, err);
     }
 }
 
 console.log("[COMMANDS] Loaded:", Object.keys(commands));
 
-const ACCOUNT_PATH = "accounts.json";
+// ------------------------------
+// Constants
+// ------------------------------
+const PORT = process.env.PORT || 9000;
 const START_ROOM = "forest-g3";
 
-// ===================================
-// Load or create accounts.json (+ logs)
-// ===================================
-let accounts = {};
-if (fs.existsSync(ACCOUNT_PATH)) {
-    try {
-        console.log("[ACCOUNTS] Found accounts.json, loading...");
-        accounts = JSON.parse(fs.readFileSync(ACCOUNT_PATH, "utf8"));
-        console.log("[ACCOUNTS] Loaded", Object.keys(accounts).length, "accounts.");
-    } catch (e) {
-        console.error("[ACCOUNTS] ERROR parsing accounts.json:", e);
-        accounts = {};
-    }
-} else {
-    console.log("[ACCOUNTS] accounts.json not found, creating new file...");
-    fs.writeFileSync(ACCOUNT_PATH, "{}");
-    console.log("[ACCOUNTS] Created empty accounts.json");
-}
-
-function saveAccounts() {
-    try {
-        fs.writeFileSync(ACCOUNT_PATH, JSON.stringify(accounts, null, 2));
-        console.log("[ACCOUNTS] Saved accounts.json");
-    } catch (e) {
-        console.error("[ACCOUNTS] FAILED TO SAVE accounts.json:", e);
-    }
-}
-
-
-// ===================================
-// Recursively load world/*.json
-// ===================================
-function loadWorldRecursive(dir, world = {}) {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-        const fullPath = `${dir}/${entry.name}`;
-
-        if (entry.isDirectory()) {
-            loadWorldRecursive(fullPath, world);
-        } else if (entry.isFile() && entry.name.endsWith(".json")) {
-            try {
-                const data = JSON.parse(fs.readFileSync(fullPath, "utf8"));
-                Object.assign(world, data);
-            } catch (e) {
-                console.error("FAILED TO LOAD ROOM FILE:", fullPath, e);
-            }
-        }
-    }
-
-    return world;
-}
-
-const world = loadWorldRecursive("./world");
-console.log("Loaded rooms:", Object.keys(world));
-
-
-// ===================================
-// WebSocket Server
-// ===================================
-const PORT = process.env.PORT || 9000;
+// ------------------------------
+// Start WebSocket server
+// ------------------------------
 const wss = new WebSocket.Server({ port: PORT });
 console.log("MuddyGob server running on port", PORT);
 
+// Allow global access for commands like /who
+global.sessions = Sessions.sessions;
 
-
-const sessions = new Map(); // socket -> { state, loginId, room }
-global.sessions = sessions;
-
-
-// Races + allowed pronouns
-const RACE_OPTIONS = ["goblin", "human", "elf"];
-const RACE_PRONOUNS = {
-    goblin: ["they", "it"],
-    elf: ["he", "she"],
-    human: ["he", "she", "they", "it"]
-};
-
-// Build actual pronoun object
-function buildPronounObject(key) {
-    switch (key) {
-        case "he": return { subj: "he", obj: "him", poss: "his" };
-        case "she": return { subj: "she", obj: "her", poss: "her" };
-        case "they": return { subj: "they", obj: "them", poss: "their" };
-        case "it": return { subj: "it", obj: "it", poss: "its" };
-        default: return { subj: key, obj: key, poss: key + "'s" };
-    }
-}
-
-// ===================================
-// BROADCAST CHAT TO ROOM
-// ===================================
-function broadcastToRoomExcept(roomId, msg, exceptSocket) {
-    for (const [sock, sess] of sessions.entries()) {
-        if (sock !== exceptSocket &&
-            sess.room === roomId &&
-            sess.state === "ready") {
-            sock.send(JSON.stringify({ type: "system", msg }));
-        }
-    }
-}
-
-// Compatibility: broadcast to everyone in room
-function broadcastToRoom(roomId, msg) {
-    for (const [sock, sess] of sessions.entries()) {
-        if (sess.room === roomId && sess.state === "ready") {
-            sock.send(JSON.stringify({ type: "system", msg }));
-        }
-    }
-}
-
-
-
-// ===================================
-// Handle each incoming connection
-// ===================================
-wss.on("connection", (socket) => {
+// ------------------------------
+// Handle new connections
+// ------------------------------
+wss.on("connection", socket => {
     console.log("New connection");
 
-    sessions.set(socket, {
-        state: "connected",
-        loginId: null,
-        room: START_ROOM
-    });
+    Sessions.create(socket, START_ROOM);
+    Sessions.broadcastPlayerCount();
 
-    // Call *after* setting the session
-    broadcastPlayerCount();
+    Sessions.sendSystem(socket, "Connected to MuddyGob. Press New or Login.");
 
-    sendSystem(socket, "Connected to MuddyGob. Press New or Login.");
-
-    socket.on("message", (data) => {
-        const text = data.toString().trim();
-        handleIncoming(socket, text);
-    });
-
+    socket.on("message", msg => handleIncoming(socket, msg.toString().trim()));
     socket.on("close", () => {
-        sessions.delete(socket);
-        broadcastPlayerCount();
+        Sessions.remove(socket);
+        Sessions.broadcastPlayerCount();
         console.log("Connection closed");
     });
 });
 
-
-// ===================================
-// JSON before text
-// ===================================
+// ------------------------------
+// Handle JSON or text commands
+// ------------------------------
 function handleIncoming(socket, raw) {
+
+    // Try JSON first
     try {
-        const obj = JSON.parse(raw);
-        if (obj && obj.type) {
-            handleJson(socket, obj);
-            return;
-        }
+        const data = JSON.parse(raw);
+        if (data?.type) return handleJSON(socket, data);
     } catch {}
 
+    // Otherwise handle text commands
     handleText(socket, raw);
 }
 
-// ===================================
-// JSON COMMANDS (UI flow)
-// ===================================
-function handleJson(socket, data) {
-    const sess = sessions.get(socket);
+// ------------------------------
+// JSON commands (UI-driven)
+// ------------------------------
+function handleJSON(socket, data) {
+    const sess = Sessions.get(socket);
     if (!sess) return;
-    // Handle heartbeat
-if (data.type === "ping") {
-    socket.send("pong");
-    return;
-}
+
+    // Heartbeat ping/pong
+    if (data.type === "ping") return socket.send("pong");
 
     switch (data.type) {
 
-      case "create_account": {
-    const baseName = (data.name || "").trim();
-    const password = (data.password || "").trim();
-    const race = (data.race || "").trim().toLowerCase();
-    const pronounKey = (data.pronoun || "").trim().toLowerCase();
+        case "create_account":
+            return Accounts.create(socket, sess, data, START_ROOM);
 
-    if (!baseName || !password || !race || !pronounKey) {
-        return sendSystem(socket,
-            "That being cannot be created (missing name, password, race, or pronoun)."
-        );
+        case "try_login":
+            return Accounts.login(socket, sess, data, START_ROOM);
+
+        case "resume":
+            return Accounts.resume(socket, sess, data, START_ROOM);
+
+        default:
+            return Sessions.sendSystem(socket, "The world does not understand that.");
     }
-
-    const NAME_RE = /^[A-Za-z']{4,16}$/;
-    if (!NAME_RE.test(baseName)) {
-        return sendSystem(socket,
-            "That being cannot be created (name must be 4–16 letters; apostrophes allowed)."
-        );
-    }
-
-    if (!RACE_OPTIONS.includes(race)) {
-        return sendSystem(socket, "That being cannot be created (its ancestry feels wrong).");
-    }
-
-    if (!RACE_PRONOUNS[race].includes(pronounKey)) {
-        return sendSystem(socket, "Those pronouns do not match this ancestry.");
-    }
-
-    const keyName = baseName.toLowerCase();
-    const loginId = `${keyName}@${race}.${pronounKey}`;
-
-    if (accounts[loginId]) {
-        return sendSystem(socket, "That being already exists.");
-    }
-
-    // Generate session resume token
-    const token = Math.random().toString(36).slice(2);
-
-    accounts[loginId] = {
-        name: baseName,
-        password,
-        race,
-        pronounKey,
-        pronouns: buildPronounObject(pronounKey),
-        lastRoom: START_ROOM,
-        sessionToken: token,
-        createdAt: Date.now()
-    };
-
-    saveAccounts();
-
-    socket.send(JSON.stringify({ type: "session_token", token }));
-
-    sess.state = "ready";
-    sess.loginId = loginId;
-    sess.room = START_ROOM;
-
-    sendSystem(socket, `A new ${race} awakens as ${baseName}.`);
-    sendRoom(socket, START_ROOM);
-    return;
 }
 
-
-
-    case "try_login": {
-    let login = (data.login || "").trim().toLowerCase();
-    const password = (data.password || "").trim();
-
-    if (!login || !password) {
-        return sendSystem(socket, "A name and key phrase are required.");
-    }
-
-    const acc = accounts[login];
-    if (!acc) return sendSystem(socket, "No such being exists.");
-    if (acc.password !== password) return sendSystem(socket, "The key phrase does not match.");
-
-    const token = Math.random().toString(36).slice(2);
-    acc.sessionToken = token;
-    saveAccounts();
-
-    socket.send(JSON.stringify({ type: "session_token", token }));
-
-    sess.state = "ready";
-    sess.loginId = login;
-    sess.room = acc.lastRoom || START_ROOM;
-
-    sendSystem(socket, `Welcome back, ${acc.name}.`);
-    sendRoom(socket, sess.room);
-    return;
-}
-
-
-// ===================================
-// TEXT COMMANDS
-// ===================================
-
-function normalizeDir(dir) {
-    const map = {
-        n: "north",
-        s: "south",
-        e: "east",
-        w: "west",
-        north: "north",
-        south: "south",
-        east: "east",
-        west: "west"
-    };
-    return map[dir.toLowerCase()] || dir.toLowerCase();
-}
-
-
+// ------------------------------
+// Text commands (movement, say, look…)
+// ------------------------------
 function handleText(socket, input) {
-    const sess = sessions.get(socket);
-    if (!sess || sess.state !== "ready") {
-        return sendSystem(socket, "You must create or login first.");
-    }
+    const sess = Sessions.get(socket);
+    if (!sess || sess.state !== "ready")
+        return Sessions.sendSystem(socket, "You must create or login first.");
 
+    // Basic command parsing
     const [cmd, ...rest] = input.split(" ");
-    const arg   = rest.join(" ").trim();
+    const arg = rest.join(" ").trim();
     const lower = cmd.toLowerCase();
 
-    // --- BUILT-IN COMMAND: WHO ---
-    if (lower === "who") {
-        const names = [];
+    // Built-in WHO command
+    if (lower === "who") return Sessions.doWho(socket);
 
-        for (const [sock, s] of sessions.entries()) {
-            if (s.state === "ready") {
-                const acc = accounts[s.loginId];
-                if (acc && acc.name) {
-                    names.push(acc.name);
-                }
-            }
-        }
+    // Movement shortcut
+    if (["n", "s", "e", "w", "north", "south", "east", "west", "move"].includes(lower))
+        return Room.handleMove(socket, sess, lower, arg);
 
-        if (names.length <= 1) {
-            return sendSystem(socket, "No other presences stir in this world.");
-        }
+    // Commands folder
+    if (commands[lower])
+        return commands[lower].execute({
+            socket,
+            sess,
+            accounts: Accounts.data,
+            world: World.data,
+            sendRoom: Room.sendRoom,
+            sendSystem: Sessions.sendSystem,
+            commands,
+            broadcastToRoomExcept: Sessions.broadcastToRoomExcept,
+            oppositeDirection: Room.oppositeDirection,
+            saveAccounts: Accounts.save
+        }, arg);
 
-        const list = names.map(n => `• ${n}`).join("\n");
-        return sendSystem(socket,
-            "Others breathing in this world:\n" + list
-        );
-    }
-
-    // --- FALL THROUGH TO COMMANDS FOLDER ---
-if (commands[lower]) {
-    return commands[lower].execute({
-        socket,
-        sess,
-        accounts,
-        world,
-        sendRoom,
-        sendSystem,
-        commands,
-        broadcastToRoomExcept,
-        oppositeDirection,
-        saveAccounts
-    }, arg);
+    Sessions.sendSystem(socket, "Nothing responds.");
 }
-
-
-
-    sendSystem(socket, "Nothing responds.");
-}
-
-
-// ===================================
-// MOVEMENT HANDLER
-// ===================================
-function handleMove(socket, arg) {
-    const sess = sessions.get(socket);
-    const acc = accounts[sess.loginId];
-    const name = acc ? acc.name : "Someone";
-
-    const dir = normalizeDir(arg);
-    const room = world[sess.room];
-
-    if (!room || !room.exits || !room.exits[dir]) {
-        return sendSystem(socket, "You cannot go that way.");
-    }
-
-    const oldRoom = sess.room;
-    const newRoom = room.exits[dir];
-
-    // notify others in old room
-    broadcastToRoomExcept(oldRoom, `[MOVE] ${name} leaves ${dir}.`, socket);
-
-    // move player
-    sess.room = newRoom;
-    acc.lastRoom = newRoom;
-    saveAccounts();
-
-    // notify others in new room
-    broadcastToRoomExcept(newRoom, `[MOVE] ${name} enters from ${oppositeDirection(dir)}.`, socket);
-
-    sendRoom(socket, newRoom);
-}
-
-
-// ===================================
-// Send helpers
-// ===================================
-
-function broadcastPlayerCount() {
-    const count = [...sessions.values()].filter(s => s.state === "ready").length;
-
-    for (const [sock, sess] of sessions.entries()) {
-        sock.send(JSON.stringify({
-            type: "players_online",
-            count
-        }));
-    }
-}
-
-
-function oppositeDirection(dir) {
-    const opposites = {
-        north: "south",
-        south: "north",
-        east: "west",
-        west: "east"
-    };
-    return opposites[dir] || "somewhere";
-}
-
-function sendSystem(socket, msg) {
-    socket.send(JSON.stringify({ type: "system", msg }));
-}
-
-function sendRoom(socket, id) {
-    const sess = sessions.get(socket);
-    if (!sess) return;
-
-    const acc  = accounts[sess.loginId];
-    const race = acc ? acc.race : null;
-
-    const room = world[id];
-    if (!room) {
-        return sendSystem(socket, "The world frays here (missing room).");
-    }
-
-    // --- Collect players in this room ---
-    const playersHere = [];
-    for (const [sock, s] of sessions.entries()) {
-        if (s.room === id && s.state === "ready") {
-            const a = accounts[s.loginId];
-            if (a && a.name) {
-                playersHere.push(a.name);
-            }
-        }
-    }
-
-    // --- Choose correct description (race-based or general) ---
-    const desc =
-        (room.textByRace && race && room.textByRace[race]) ||
-        room.text ||
-        ["You see nothing special."];
-
-    // --- NEW: Collect room objects (e.g., rock, pond) ---
-const objectList = [];
-if (room.objects) {
-    for (const [name, obj] of Object.entries(room.objects)) {
-
-        // ITEM OBJECT?
-        if (obj.itemId && itemsDB[obj.itemId]) {
-            const def = itemsDB[obj.itemId];
-
-            objectList.push({
-                name,
-                type: "item",
-                emoji: def.emoji,
-                actions: def.actions,
-                desc:
-                    (def.textByRace && race && def.textByRace[race]) ||
-                    def.text ||
-                    null
-            });
-        }
-
-        // SCENERY OBJECT?
-        else {
-            objectList.push({
-                name,
-                type: obj.type || "scenery",
-                emoji: obj.emoji || "",
-                actions: obj.actions || ["look"],
-                desc:
-                    (obj.textByRace && race && obj.textByRace[race]) ||
-                    obj.text ||
-                    null
-            });
-        }
-    }
-}
-
-    // --- Send room to client ---
-    socket.send(JSON.stringify({
-        type: "room",
-        id,
-        title: room.title || "Somewhere",
-        desc,
-        exits: Object.keys(room.exits || {}),
-        background: room.background || null,
-        players: playersHere,
-        objects: objectList     // 👈 NEW — now client sees rock, pond, etc.
-    }));
-}
-
-
-function sendPlayersInRoom(socket, roomId) {
-    const names = [];
-
-    for (const [sock, sess] of sessions.entries()) {
-        if (sess.room === roomId && sess.state === "ready") {
-            const acc = accounts[sess.loginId];
-            if (acc) names.push(acc.name);
-        }
-    }
-
-    socket.send(JSON.stringify({
-        type: "room_players",
-        players: names
-    }));
-}
-
-function recordSpeech(sess) {
-    const now = Date.now();
-    if (!sess.spamTimes) sess.spamTimes = [];
-
-    // Keep last 10 seconds
-    sess.spamTimes = sess.spamTimes.filter(t => now - t < 10000);
-    sess.spamTimes.push(now);
-
-    if (sess.spamTimes.length >= 6) {
-        // escalate punishment
-        if (!sess.muteLevel) sess.muteLevel = 1;
-
-        const durations = {
-            1: 5000,   // 5s
-            2: 15000,  // 15s
-            3: 30000,  // 30s
-        };
-
-        const mute = durations[sess.muteLevel] || 60000; // fallback 1 min
-        sess.mutedUntil = now + mute;
-
-        sess.muteLevel++; // next time is worse
-    }
-}
-
-function isMuted(sess) {
-    return sess.mutedUntil && Date.now() < sess.mutedUntil;
-}
-
-
