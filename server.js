@@ -480,6 +480,7 @@ function sendRoom(socket, id) {
     }));
 }
 
+
 function sendPlayersInRoom(socket, roomId) {
     const names = [];
 
