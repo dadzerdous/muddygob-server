@@ -1,9 +1,20 @@
+// commands/move.js
 module.exports = {
     name: "move",
     aliases: ["go", "walk", "m"],
-    description: "Move in a direction.",
+    description: "Move in a direction (north, south, east, west).",
 
-    execute({ socket, sess, accounts, world, sendRoom, sendSystem }, arg) {
+    execute({
+        socket,
+        sess,
+        accounts,
+        world,
+        sendRoom,
+        sendSystem,
+        broadcastToRoomExcept,
+        oppositeDirection,
+        saveAccounts
+    }, arg) {
 
         if (!arg) {
             return sendSystem(socket, "Move where?");
@@ -30,10 +41,25 @@ module.exports = {
             return sendSystem(socket, "You cannot go that way.");
         }
 
-        // Change rooms
-        sess.room = room.exits[dir];
+        const acc    = accounts[sess.loginId];
+        const name   = acc ? acc.name : "Someone";
+        const oldRoom = sess.room;
+        const newRoom = room.exits[dir];
 
-        // Send new room to player
-        return sendRoom(socket, sess.room);
+        // Notify others in old room
+        broadcastToRoomExcept(oldRoom, `[MOVE] ${name} leaves ${dir}.`, socket);
+
+        // Move player + persist lastRoom
+        sess.room = newRoom;
+        if (acc) {
+            acc.lastRoom = newRoom;
+            saveAccounts();
+        }
+
+        // Notify others in new room
+        broadcastToRoomExcept(newRoom, `[MOVE] ${name} enters from ${oppositeDirection(dir)}.`, socket);
+
+        // Show new room to this player
+        return sendRoom(socket, newRoom);
     }
 };
