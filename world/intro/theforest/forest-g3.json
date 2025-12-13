@@ -18,8 +18,8 @@
 }
 ,
     "exits": {
-      "north": "g4",
-      "east": "g2"
+      "north": "forest-g4",
+      "east": "forest-g2"
     },
     "background": "forest-clearing.png"
   }
