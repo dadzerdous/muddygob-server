@@ -60,16 +60,20 @@ wss.on("connection", socket => {
     Sessions.broadcastPlayerCount();
 
     Sessions.sendSystem(socket, "Connected to MuddyGob. Press New or Login.");
-    console.log("[WS RAW]", msg.toString());
 
+    // Log every message the client sends
+    socket.on("message", msg => {
+        console.log("[WS RAW]", msg.toString());
+        handleIncoming(socket, msg.toString().trim());
+    });
 
-    socket.on("message", msg => handleIncoming(socket, msg.toString().trim()));
     socket.on("close", () => {
         Sessions.remove(socket);
         Sessions.broadcastPlayerCount();
         console.log("Connection closed");
     });
 });
+
 
 // ------------------------------
 // Handle JSON or text commands
