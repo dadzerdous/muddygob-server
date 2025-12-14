@@ -45,7 +45,7 @@ module.exports = {
             socket,
             `📘 AVAILABLE COMMANDS:\n` +
             unique.join("\n") +
-            `\n\nType: help <command> for details.`
+            `\n\n Type: help <command> for details.`
         );
     }
 };
