@@ -5,6 +5,14 @@
 const WebSocket = require("ws");
 const fs = require("fs");
 
+process.on("uncaughtException", err => {
+    console.error("🔥 UNCAUGHT EXCEPTION:", err);
+});
+
+process.on("unhandledRejection", err => {
+    console.error("🔥 UNHANDLED PROMISE REJECTION:", err);
+});
+
 // ------------------------------
 // Load core modules
 // ------------------------------
