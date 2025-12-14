@@ -9,7 +9,7 @@ const World = require("../core/world");
 module.exports = {
     name: "look",
     aliases: ["l"],
-    description: "Look at the room or an object.",
+    help: "Look at the room or an object.",
 
     execute({ socket, sess, sendRoom, sendSystem }, arg) {
 
