@@ -44,10 +44,25 @@ function makeToken() {
 }
 
 // -----------------------------------------------
+// 🔑 SEND PLAYER STATE (NEW)
+// -----------------------------------------------
+function sendPlayerState(socket, acc) {
+    socket.send(JSON.stringify({
+        type: "player_state",
+        player: {
+            name: acc.name,
+            race: acc.race,
+            pronoun: acc.pronounKey
+        }
+    }));
+}
+
+// -----------------------------------------------
 // Create account
 // -----------------------------------------------
 function create(socket, sess, data, startRoom) {
     const { sendSystem } = require("./sessions");
+    const { sendRoom } = require("./room");
 
     const baseName = (data.name || "").trim();
     const password = (data.password || "").trim();
@@ -109,9 +124,11 @@ function create(socket, sess, data, startRoom) {
 
     sendSystem(socket, `A new ${race} awakens as ${baseName}.`);
 
-    const { sendRoom } = require("./room");
+    // 🔑 SEND PLAYER STATE FIRST
+    sendPlayerState(socket, accounts[loginId]);
+
+    // 🌍 THEN SEND ROOM
     sendRoom(socket, startRoom);
-    return; 
 }
 
 // -----------------------------------------------
@@ -119,6 +136,7 @@ function create(socket, sess, data, startRoom) {
 // -----------------------------------------------
 function login(socket, sess, data, startRoom) {
     const { sendSystem } = require("./sessions");
+    const { sendRoom } = require("./room");
 
     const loginId = (data.login || "").trim().toLowerCase();
     const password = (data.password || "").trim();
@@ -143,7 +161,10 @@ function login(socket, sess, data, startRoom) {
 
     sendSystem(socket, `Welcome back, ${acc.name}.`);
 
-    const { sendRoom } = require("./room");
+    // 🔑 SEND PLAYER STATE FIRST
+    sendPlayerState(socket, acc);
+
+    // 🌍 THEN SEND ROOM
     sendRoom(socket, sess.room);
 }
 
@@ -152,6 +173,7 @@ function login(socket, sess, data, startRoom) {
 // -----------------------------------------------
 function resume(socket, sess, data, startRoom) {
     const { sendSystem } = require("./sessions");
+    const { sendRoom } = require("./room");
 
     const token = data.token;
     if (!token) return sendSystem(socket, "No session token.");
@@ -170,7 +192,10 @@ function resume(socket, sess, data, startRoom) {
 
     sendSystem(socket, `Resuming your journey, ${acc.name}.`);
 
-    const { sendRoom } = require("./room");
+    // 🔑 SEND PLAYER STATE FIRST
+    sendPlayerState(socket, acc);
+
+    // 🌍 THEN SEND ROOM
     sendRoom(socket, sess.room);
 }
 
