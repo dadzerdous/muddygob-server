@@ -6,7 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 
-// Load item definitions (single file for now)
+// Load item definitions
 const itemsDB = JSON.parse(
     fs.readFileSync(
         path.join(__dirname, "../world/items/rock.json"),
@@ -35,9 +35,11 @@ module.exports = {
             return sendSystem(socket, "Take what?");
         }
 
-        const acc = accounts[sess.loginId];
-        const room = world[sess.room];
+        if (!world) {
+            return sendSystem(socket, "The world feels unstable here.");
+        }
 
+        const room = world[sess.room];
         if (!room || !room.objects) {
             return sendSystem(socket, "There is nothing here to take.");
         }
@@ -49,7 +51,7 @@ module.exports = {
             return sendSystem(socket, "You see no such thing.");
         }
 
-        // 🔑 Your model: items are identified by itemId
+        // Must be an item
         if (!obj.itemId) {
             return sendSystem(socket, "You cannot take that.");
         }
@@ -59,23 +61,19 @@ module.exports = {
             return sendSystem(socket, "That item cannot be taken.");
         }
 
-        // Ensure inventory exists
+        const acc = accounts[sess.loginId];
+        if (!acc) {
+            return sendSystem(socket, "You feel oddly disconnected from yourself.");
+        }
+
         if (!acc.inventory) acc.inventory = [];
 
-        // Add to inventory
         acc.inventory.push(obj.itemId);
-
-        // Remove from room
         delete room.objects[key];
 
         saveAccounts();
 
-        sendSystem(
-            socket,
-            `You pick up the ${key}.`
-        );
-
-        // Refresh room view
+        sendSystem(socket, `You pick up the ${key}.`);
         sendRoom(socket, sess.room);
     }
 };
