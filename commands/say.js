@@ -2,7 +2,7 @@
 module.exports = {
     name: "say",
     aliases: ["s"],
-    description: "Speak to everyone in the room.",
+    help: "Speak to everyone in the room.",
 
     execute({ socket, sess, accounts, sendSystem }, message) {
         if (!message) {
