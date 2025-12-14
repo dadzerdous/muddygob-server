@@ -109,6 +109,7 @@ function create(socket, sess, data, startRoom) {
         race,
         pronounKey,
         pronouns: buildPronoun(pronounKey),
+        inventory: [], 
         lastRoom: startRoom,
         sessionToken: token,
         createdAt: Date.now()
