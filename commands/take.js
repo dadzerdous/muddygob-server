@@ -17,7 +17,6 @@ const itemsDB = JSON.parse(
 module.exports = {
     name: "take",
     aliases: ["get", "grab"],
-
     help: "take <item>\nPick up an item you see in the room.",
 
     execute(ctx, arg) {
@@ -25,21 +24,24 @@ module.exports = {
             socket,
             sess,
             accounts,
-            world,
-            sendRoom,
             sendSystem,
-            saveAccounts
+            sendRoom
         } = ctx;
 
         if (!arg) {
             return sendSystem(socket, "Take what?");
         }
 
-        if (!world) {
-            return sendSystem(socket, "The world feels unstable here.");
+        const acc = accounts[sess.loginId];
+        if (!acc) {
+            return sendSystem(socket, "You feel strangely insubstantial.");
         }
 
-        const room = world[sess.room];
+        // 🔑 IMPORTANT: get room data via sendRoom side-channel
+        const roomData = require("../core/world").data;
+        const rooms = roomData?.rooms || roomData;
+
+        const room = rooms[sess.room];
         if (!room || !room.objects) {
             return sendSystem(socket, "There is nothing here to take.");
         }
@@ -51,7 +53,6 @@ module.exports = {
             return sendSystem(socket, "You see no such thing.");
         }
 
-        // Must be an item
         if (!obj.itemId) {
             return sendSystem(socket, "You cannot take that.");
         }
@@ -61,17 +62,12 @@ module.exports = {
             return sendSystem(socket, "That item cannot be taken.");
         }
 
-        const acc = accounts[sess.loginId];
-        if (!acc) {
-            return sendSystem(socket, "You feel oddly disconnected from yourself.");
-        }
-
         if (!acc.inventory) acc.inventory = [];
-
         acc.inventory.push(obj.itemId);
+
         delete room.objects[key];
 
-        saveAccounts();
+        // No saveAccounts for now (Render wipes anyway)
 
         sendSystem(socket, `You pick up the ${key}.`);
         sendRoom(socket, sess.room);
