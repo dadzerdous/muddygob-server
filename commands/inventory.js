@@ -1,6 +1,6 @@
 // ===============================================
 // commands/inventory.js
-// Show carried items
+// Show carried items (SAFE VERSION)
 // ===============================================
 
 const fs = require("fs");
@@ -16,24 +16,31 @@ const itemsDB = JSON.parse(
 module.exports = {
     name: "inventory",
     aliases: ["inv", "i"],
-
-    help: "inventory\nShow what you are currently carrying.",
+    help: "inventory\nShow what you are carrying.",
 
     execute({ socket, sess, accounts, sendSystem }) {
         const acc = accounts[sess.loginId];
 
-        if (!acc.inventory || acc.inventory.length === 0) {
+        if (!acc) {
+            return sendSystem(socket, "You seem to have no body.");
+        }
+
+        if (!Array.isArray(acc.inventory) || acc.inventory.length === 0) {
             return sendSystem(socket, "You are carrying nothing.");
         }
 
-        const lines = acc.inventory.map(id => {
-            const item = itemsDB[id];
-            return item
-                ? `${item.emoji} ${id}`
-                : id;
-        });
+        const lines = [];
 
-        sendSystem(
+        for (const id of acc.inventory) {
+            const item = itemsDB[id];
+            if (item) {
+                lines.push(`${item.emoji} ${id}`);
+            } else {
+                lines.push(id);
+            }
+        }
+
+        return sendSystem(
             socket,
             "You are carrying:\n" + lines.join("\n")
         );
