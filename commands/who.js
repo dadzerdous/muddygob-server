@@ -1,7 +1,7 @@
 module.exports = {
     name: "who",
     aliases: [],
-    description: "List all beings currently awake in the world.",
+    help: "List all beings currently awake in the world.",
 
     execute({ socket, accounts, sendSystem }) {
 
