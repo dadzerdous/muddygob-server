@@ -8,7 +8,7 @@ module.exports = {
             return sendRoom(socket, sess.room);
         }
 
-        const room = world[sess.room];
+        const room = World[sess.room];
         const acc  = accounts[sess.loginId];
         const race = acc ? acc.race : "human";
 
