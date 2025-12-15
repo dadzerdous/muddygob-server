@@ -1,30 +1,19 @@
 // ===============================================
 // commands/take.js
-// Take an item from the room into inventory
+// Take an item from inventory or room into hands
 // ===============================================
-
-const fs = require("fs");
-const path = require("path");
-const Room = require("../core/room");
-
-// Load item definitions
-const itemsDB = JSON.parse(
-    fs.readFileSync(
-        path.join(__dirname, "../world/items/rock.json"),
-        "utf8"
-    )
-);
 
 module.exports = {
     name: "take",
     aliases: ["get", "grab"],
-    help: "take <item>\nPick up an item you see in the room.",
+    help: "take <item>\nHold an item from your inventory or the room.",
 
     execute(ctx, arg) {
         const {
             socket,
             sess,
             accounts,
+            world,
             sendSystem,
             sendRoom
         } = ctx;
@@ -35,38 +24,47 @@ module.exports = {
 
         const acc = accounts[sess.loginId];
         if (!acc) {
-            return sendSystem(socket, "You feel strangely insubstantial.");
+            return sendSystem(socket, "You feel strangely unreal.");
         }
 
-        // ✅ AUTHORITATIVE ROOM ACCESS
-        const room = Room.getRoom(sess.room);
+        if (acc.heldItem) {
+            return sendSystem(socket, "Your hands are already full.");
+        }
 
+        const itemName = arg.toLowerCase();
+
+        // ------------------------------------------
+        // 1️⃣ CHECK INVENTORY FIRST
+        // ------------------------------------------
+        if (Array.isArray(acc.inventory)) {
+            const index = acc.inventory.indexOf(itemName);
+            if (index !== -1) {
+                acc.inventory.splice(index, 1);
+                acc.heldItem = itemName;
+
+                sendSystem(socket, `You take the ${itemName} from your inventory.`);
+                sendRoom(socket, sess.room);
+                return;
+            }
+        }
+
+        // ------------------------------------------
+        // 2️⃣ CHECK ROOM
+        // ------------------------------------------
+        const room = world[sess.room];
         if (!room || !room.objects) {
             return sendSystem(socket, "There is nothing here to take.");
         }
 
-        const key = arg.toLowerCase();
-        const obj = room.objects[key];
-
-        if (!obj) {
+        const obj = room.objects[itemName];
+        if (!obj || !obj.itemId) {
             return sendSystem(socket, "You see no such thing.");
         }
 
-        if (!obj.itemId) {
-            return sendSystem(socket, "You cannot take that.");
-        }
+        acc.heldItem = obj.itemId;
+        delete room.objects[itemName];
 
-        const itemDef = itemsDB[obj.itemId];
-        if (!itemDef) {
-            return sendSystem(socket, "That item cannot be taken.");
-        }
-
-        if (!acc.inventory) acc.inventory = [];
-        acc.inventory.push(obj.itemId);
-
-        delete room.objects[key];
-
-        sendSystem(socket, `You pick up the ${key}.`);
+        sendSystem(socket, `You pick up the ${itemName}.`);
         sendRoom(socket, sess.room);
     }
 };
