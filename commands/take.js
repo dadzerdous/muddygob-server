@@ -5,6 +5,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const Room = require("../core/room");
 
 // Load item definitions
 const itemsDB = JSON.parse(
@@ -37,11 +38,9 @@ module.exports = {
             return sendSystem(socket, "You feel strangely insubstantial.");
         }
 
-        // 🔑 IMPORTANT: get room data via sendRoom side-channel
-        const roomData = require("../core/world").data;
-        const rooms = roomData?.rooms || roomData;
+        // ✅ AUTHORITATIVE ROOM ACCESS
+        const room = Room.getRoom(sess.room);
 
-        const room = rooms[sess.room];
         if (!room || !room.objects) {
             return sendSystem(socket, "There is nothing here to take.");
         }
@@ -66,8 +65,6 @@ module.exports = {
         acc.inventory.push(obj.itemId);
 
         delete room.objects[key];
-
-        // No saveAccounts for now (Render wipes anyway)
 
         sendSystem(socket, `You pick up the ${key}.`);
         sendRoom(socket, sess.room);
