@@ -156,8 +156,14 @@ function normalizeDirection(cmd, arg) {
     return null;
 }
 
+function getRoom(roomId) {
+    return World.data[roomId];
+}
+
 module.exports = {
     sendRoom,
     handleMove,
-    oppositeDirection
+    oppositeDirection,
+    getRoom
 };
+
