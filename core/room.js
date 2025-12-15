@@ -1,10 +1,10 @@
 // ===============================================
-// core/room.js — FINAL CLEAN VERSION
+// core/room.js — CLEAN + CORRECT VERSION
 // ===============================================
 
 const Sessions = require("./sessions");
 const Accounts = require("./accounts");
-const World = require("./world");   // World.rooms, World.items
+const World = require("./world");   // uses World.rooms, World.items
 
 // -----------------------------------------------
 // Opposite direction helper
@@ -16,6 +16,13 @@ function oppositeDirection(dir) {
         east: "west",
         west: "east"
     }[dir] || "somewhere";
+}
+
+// -----------------------------------------------
+// SAFE ROOM GETTER (AUTHORITATIVE)
+// -----------------------------------------------
+function getRoom(roomId) {
+    return World.rooms[roomId];
 }
 
 // -----------------------------------------------
@@ -33,9 +40,7 @@ function sendRoom(socket, id) {
         return Sessions.sendSystem(socket, "The world frays here (missing room).");
     }
 
-    // -------------------------------------------
     // Players in this room
-    // -------------------------------------------
     const playersHere = [];
     for (const [sock, s] of Sessions.sessions.entries()) {
         if (s.room === id && s.state === "ready") {
@@ -44,23 +49,19 @@ function sendRoom(socket, id) {
         }
     }
 
-    // -------------------------------------------
-    // Room description (optional race-specific)
-    // -------------------------------------------
+    // Room description
     const desc =
         (room.textByRace && race && room.textByRace[race]) ||
         room.text ||
         ["You see nothing special."];
 
-    // -------------------------------------------
-    // Objects (items + scenery)
-    // -------------------------------------------
+    // Objects
     const objectList = [];
 
     if (room.objects) {
         for (const [name, obj] of Object.entries(room.objects)) {
 
-            // ITEM: references item database under /world/items
+            // ITEM
             if (obj.itemId && World.items[obj.itemId]) {
                 const def = World.items[obj.itemId];
 
@@ -92,9 +93,6 @@ function sendRoom(socket, id) {
         }
     }
 
-    // -------------------------------------------
-    // Send final structured room packet
-    // -------------------------------------------
     socket.send(JSON.stringify({
         type: "room",
         id,
@@ -125,18 +123,18 @@ function handleMove(socket, sess, cmd, arg) {
     const oldRoom = sess.room;
     const newRoom = room.exits[dir];
 
-    // Notify people in the old room
     Sessions.broadcastToRoomExcept(oldRoom, `${name} leaves ${dir}.`, socket);
 
-    // Save new room location
     sess.room = newRoom;
     acc.lastRoom = newRoom;
-    Accounts.save();  // persists last room for auto-resume
+    Accounts.save();
 
-    // Notify people in new room
-    Sessions.broadcastToRoomExcept(newRoom, `${name} enters from ${oppositeDirection(dir)}.`, socket);
+    Sessions.broadcastToRoomExcept(
+        newRoom,
+        `${name} enters from ${oppositeDirection(dir)}.`,
+        socket
+    );
 
-    // Send updated room to mover
     sendRoom(socket, newRoom);
 }
 
@@ -156,14 +154,9 @@ function normalizeDirection(cmd, arg) {
     return null;
 }
 
-function getRoom(roomId) {
-    return World.data[roomId];
-}
-
 module.exports = {
     sendRoom,
     handleMove,
     oppositeDirection,
     getRoom
 };
-
