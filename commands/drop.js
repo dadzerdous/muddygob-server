@@ -3,21 +3,13 @@
 // Drop the currently held item
 // ===============================================
 
+const World = require("../core/world");
+
 module.exports = {
     name: "drop",
-    aliases: [],
     help: "drop\nDrop the item you are currently holding.",
 
-    execute(ctx) {
-        const {
-            socket,
-            sess,
-            accounts,
-            world,
-            sendSystem,
-            sendRoom
-        } = ctx;
-
+    execute({ socket, sess, accounts, sendSystem, sendRoom }) {
         const acc = accounts[sess.loginId];
         if (!acc) {
             return sendSystem(socket, "You feel strangely unreal.");
@@ -27,23 +19,19 @@ module.exports = {
             return sendSystem(socket, "You are not holding anything.");
         }
 
-        const room = world[sess.room];
+        const room = World.rooms[sess.room];
         if (!room) {
             return sendSystem(socket, "The world resists your action.");
         }
 
         if (!room.objects) room.objects = {};
 
-        const itemName = acc.heldItem;
+        const item = acc.heldItem;
 
-        // Put item back into room
-        room.objects[itemName] = {
-            itemId: itemName
-        };
-
+        room.objects[item] = { itemId: item };
         acc.heldItem = null;
 
-        sendSystem(socket, `You drop the ${itemName}.`);
+        sendSystem(socket, `You drop the ${item}.`);
         sendRoom(socket, sess.room);
     }
 };
