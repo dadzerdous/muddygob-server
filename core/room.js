@@ -1,5 +1,5 @@
 // ===============================================
-// core/room.js — AUTHORITATIVE VERSION
+// core/room.js — AUTHORITATIVE VERSION (FIXED)
 // ===============================================
 
 const Sessions = require("./sessions");
@@ -38,6 +38,74 @@ function sendRoom(socket, id) {
         return Sessions.sendSystem(socket, "The world frays here.");
     }
 
+    // -------------------------------------------
+    // Players in room
+    // -------------------------------------------
+    const playersHere = [];
+    for (const [sock, s] of Sessions.sessions.entries()) {
+        if (s.room === id && s.state === "ready") {
+            const a = Accounts.data[s.loginId];
+            if (a) playersHere.push(a.name);
+        }
+    }
+
+    // -------------------------------------------
+    // Description (race-aware)
+    // -------------------------------------------
+    const desc =
+        (room.textByRace && race && room.textByRace[race]) ||
+        room.text ||
+        ["You see nothing special."];
+
+    // -------------------------------------------
+    // Objects
+    // -------------------------------------------
+    const objectList = [];
+
+    if (room.objects) {
+        for (const [name, obj] of Object.entries(room.objects)) {
+
+            if (obj.itemId && World.items[obj.itemId]) {
+                const def = World.items[obj.itemId];
+                objectList.push({
+                    name,
+                    type: "item",
+                    emoji: def.emoji,
+                    actions: def.actions || ["look"],
+                    desc:
+                        (def.textByRace && race && def.textByRace[race]) ||
+                        def.text ||
+                        null
+                });
+            } else {
+                objectList.push({
+                    name,
+                    type: obj.type || "scenery",
+                    emoji: obj.emoji || "",
+                    actions: obj.actions || ["look"],
+                    desc:
+                        (obj.textByRace && race && obj.textByRace[race]) ||
+                        obj.text ||
+                        null
+                });
+            }
+        }
+    }
+
+    // -------------------------------------------
+    // SEND ROOM PACKET
+    // -------------------------------------------
+    socket.send(JSON.stringify({
+        type: "room",
+        id,
+        title: room.title || "Somewhere",
+        desc,
+        exits: Object.keys(room.exits || {}),
+        background: room.background || null,
+        players: playersHere,
+        objects: objectList
+    }));
+}
 
 // -----------------------------------------------
 function handleMove(socket, sess, cmd, arg) {
@@ -70,11 +138,18 @@ function handleMove(socket, sess, cmd, arg) {
     sendRoom(socket, newRoom);
 }
 
+// -----------------------------------------------
 function normalizeDirection(cmd, arg) {
-    const map = { n:"north", north:"north", s:"south", south:"south", e:"east", east:"east", w:"west", west:"west" };
+    const map = {
+        n:"north", north:"north",
+        s:"south", south:"south",
+        e:"east",  east:"east",
+        w:"west",  west:"west"
+    };
     return map[cmd] || map[arg] || null;
 }
 
+// -----------------------------------------------
 module.exports = {
     sendRoom,
     handleMove,
