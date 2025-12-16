@@ -19,67 +19,25 @@ function getRoom(roomId) {
 
 // -----------------------------------------------
 function sendRoom(socket, id) {
+    console.log("[SEND ROOM] requested:", id);
+
     const sess = Sessions.get(socket);
     if (!sess) return;
 
     const acc = Accounts.data[sess.loginId];
     const race = acc?.race;
 
-    const room = getRoom(id);
+    const room = World.rooms[id];
     if (!room) {
+        console.error(
+            "[ROOM ERROR] Missing room:",
+            id,
+            "Known rooms:",
+            Object.keys(World.rooms)
+        );
         return Sessions.sendSystem(socket, "The world frays here.");
     }
 
-    // Players
-    const playersHere = [];
-    for (const [_, s] of Sessions.sessions.entries()) {
-        if (s.room === id && s.state === "ready") {
-            const a = Accounts.data[s.loginId];
-            if (a) playersHere.push(Theme.formatActor(a));
-        }
-    }
-
-    // Description
-    const desc =
-        (room.textByRace && race && room.textByRace[race]) ||
-        room.text ||
-        ["You see nothing special."];
-
-    // Objects
-    const objects = [];
-    for (const [name, obj] of Object.entries(room.objects || {})) {
-        if (obj.itemId && World.items[obj.itemId]) {
-            const def = World.items[obj.itemId];
-            objects.push({
-                name,
-                type: "item",
-                emoji: def.emoji,
-                actions: def.actions || ["look"],
-                desc: def.textByRace?.[race] || def.text || null
-            });
-        } else {
-            objects.push({
-                name,
-                type: "scenery",
-                emoji: obj.emoji || "",
-                actions: obj.actions || ["look"],
-                desc: obj.textByRace?.[race] || obj.text || null
-            });
-        }
-    }
-
-    socket.send(JSON.stringify({
-        type: "room",
-        id,
-        title: room.title,
-        desc,
-        exits: Object.keys(room.exits || {}),
-        background: room.background || null,
-        ambience: Theme.ambientForRoom(room, race),
-        players: playersHere,
-        objects
-    }));
-}
 
 // -----------------------------------------------
 function handleMove(socket, sess, cmd, arg) {
