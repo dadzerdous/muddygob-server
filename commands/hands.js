@@ -1,16 +1,16 @@
+// commands/hands.js
 module.exports = {
     name: "hands",
-    aliases: ["hand", "hold"],
-    help: "hands\nSee what you are currently holding.",
-
-    execute({ socket, sess, accounts, sendSystem }) {
+    execute(ctx) {
+        const { accounts, sess, sendSystem, world } = ctx;
         const acc = accounts[sess.loginId];
-        if (!acc) return;
 
-        if (!acc.heldItem) {
-            return sendSystem(socket, "Your hands are empty.");
+        if (!acc?.heldItem) {
+            return sendSystem(ctx.socket, "Your hands are empty.");
         }
 
-        sendSystem(socket, `You are holding: ${acc.heldItem}.`);
+        const def = world.items[acc.heldItem];
+        const emoji = def?.emoji || "";
+        sendSystem(ctx.socket, `You are holding ${emoji} ${acc.heldItem}.`);
     }
 };
