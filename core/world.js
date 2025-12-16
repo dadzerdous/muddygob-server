@@ -1,94 +1,58 @@
 // ===============================================
-// world.js — Smart world loader
+// core/world.js — SINGLE SOURCE OF TRUTH
 // ===============================================
+
 const fs = require("fs");
 const path = require("path");
 
-const ROOMS_ROOT = "./world";
-const ITEMS_ROOT = "./world/items";
+// -----------------------------------------------
+// LOAD ROOMS (one file per room)
+// -----------------------------------------------
+const roomsDir = path.join(__dirname, "../world");
+const rooms = {};
 
-// Final exported data:
-const World = {
-    rooms: {},
-    items: {}
-};
+for (const file of fs.readdirSync(roomsDir)) {
+    if (!file.endsWith(".json")) continue;
 
-const roomTemplates = JSON.parse(
-    fs.readFileSync("./world/rooms.json", "utf8")
-);
+    const id = file.replace(".json", "");
+    const fullPath = path.join(roomsDir, file);
 
-function resetRoom(roomId) {
-    World.rooms[roomId] = JSON.parse(
-        JSON.stringify(roomTemplates[roomId])
-    );
-}
-
-// --------------------------------------------------
-// Load all rooms recursively EXCEPT item folder
-// --------------------------------------------------
-function loadRooms(dir) {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-        const full = path.join(dir, entry.name);
-
-        // Skip items folder entirely
-        if (entry.isDirectory() && entry.name === "items") continue;
-
-        if (entry.isDirectory()) {
-            loadRooms(full);
-        } else if (entry.isFile() && entry.name.endsWith(".json")) {
-
-            try {
-                const json = JSON.parse(fs.readFileSync(full, "utf8"));
-
-                // Only treat as rooms if it has a ROOM ID inside the file
-                // Example: { "forest-g3": {...} }
-                const keys = Object.keys(json);
-
-                for (const key of keys) {
-                    World.rooms[key] = json[key];
-                }
-
-            } catch (err) {
-                console.error("[WORLD] Failed to load room:", full, err);
-            }
-        }
+    try {
+        rooms[id] = JSON.parse(fs.readFileSync(fullPath, "utf8"));
+    } catch (err) {
+        console.error(`🔥 Failed to load room ${file}`, err);
     }
 }
 
-// --------------------------------------------------
-// Load all items from /world/items ONLY
-// --------------------------------------------------
-function loadItems() {
-    if (!fs.existsSync(ITEMS_ROOT)) return;
+console.log("[WORLD] Loaded rooms:", Object.keys(rooms));
 
-    const itemFiles = fs.readdirSync(ITEMS_ROOT).filter(f => f.endsWith(".json"));
+// -----------------------------------------------
+// LOAD ITEMS
+// -----------------------------------------------
+const itemsDir = path.join(__dirname, "../world/items");
+const items = {};
 
-    for (const file of itemFiles) {
-        const full = path.join(ITEMS_ROOT, file);
+if (fs.existsSync(itemsDir)) {
+    for (const file of fs.readdirSync(itemsDir)) {
+        if (!file.endsWith(".json")) continue;
 
         try {
-            const json = JSON.parse(fs.readFileSync(full, "utf8"));
-            const keys = Object.keys(json);
-
-            keys.forEach(k => {
-                World.items[k] = json[k];
-            });
-
+            Object.assign(
+                items,
+                JSON.parse(fs.readFileSync(path.join(itemsDir, file), "utf8"))
+            );
         } catch (err) {
-            console.error("[ITEMS] Failed to load item:", full, err);
+            console.error(`🔥 Failed to load item file ${file}`, err);
         }
     }
 }
 
-// --------------------------------------------------
-// INITIAL LOAD
-// --------------------------------------------------
-loadRooms(ROOMS_ROOT);
-loadItems();
+console.log("[ITEMS] Loaded items:", Object.keys(items));
 
-console.log("[WORLD] Loaded rooms:", Object.keys(World.rooms));
-console.log("[ITEMS] Loaded items:", Object.keys(World.items));
-
-module.exports = World;
+// -----------------------------------------------
+// EXPORT AUTHORITATIVE WORLD
+// -----------------------------------------------
+module.exports = {
+    rooms,
+    items
+};
