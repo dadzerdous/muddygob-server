@@ -13,6 +13,16 @@ const World = {
     items: {}
 };
 
+const roomTemplates = JSON.parse(
+    fs.readFileSync("./world/rooms.json", "utf8")
+);
+
+function resetRoom(roomId) {
+    World.rooms[roomId] = JSON.parse(
+        JSON.stringify(roomTemplates[roomId])
+    );
+}
+
 // --------------------------------------------------
 // Load all rooms recursively EXCEPT item folder
 // --------------------------------------------------
