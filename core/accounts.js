@@ -4,13 +4,16 @@
 // ===============================================
 
 const fs = require("fs");
+const World = require("./world");
 
 const ACCOUNT_PATH = "accounts.json";
 
 // In-memory store
 let accounts = {};
 
+// -----------------------------------------------
 // Load accounts at startup
+// -----------------------------------------------
 if (fs.existsSync(ACCOUNT_PATH)) {
     try {
         accounts = JSON.parse(fs.readFileSync(ACCOUNT_PATH, "utf8"));
@@ -44,7 +47,7 @@ function makeToken() {
 }
 
 // -----------------------------------------------
-// 🔑 SEND PLAYER STATE (NEW)
+// 🔑 SEND PLAYER STATE
 // -----------------------------------------------
 function sendPlayerState(socket, acc) {
     socket.send(JSON.stringify({
@@ -55,6 +58,23 @@ function sendPlayerState(socket, acc) {
             pronoun: acc.pronounKey
         }
     }));
+}
+
+// -----------------------------------------------
+// 🔒 SAFE ROOM RESOLUTION
+// -----------------------------------------------
+function resolveRoom(acc, startRoom) {
+    if (!acc.lastRoom || !World.rooms[acc.lastRoom]) {
+        console.warn(
+            "[SPAWN FIX] Invalid lastRoom, resetting:",
+            acc.lastRoom,
+            "→",
+            startRoom
+        );
+        acc.lastRoom = startRoom;
+        save();
+    }
+    return acc.lastRoom;
 }
 
 // -----------------------------------------------
@@ -109,7 +129,7 @@ function create(socket, sess, data, startRoom) {
         race,
         pronounKey,
         pronouns: buildPronoun(pronounKey),
-        inventory: [], 
+        inventory: [],
         lastRoom: startRoom,
         sessionToken: token,
         createdAt: Date.now()
@@ -125,10 +145,7 @@ function create(socket, sess, data, startRoom) {
 
     sendSystem(socket, `A new ${race} awakens as ${baseName}.`);
 
-    // 🔑 SEND PLAYER STATE FIRST
     sendPlayerState(socket, accounts[loginId]);
-
-    // 🌍 THEN SEND ROOM
     sendRoom(socket, startRoom);
 }
 
@@ -158,14 +175,11 @@ function login(socket, sess, data, startRoom) {
 
     sess.state = "ready";
     sess.loginId = loginId;
-    sess.room = acc.lastRoom || startRoom;
+    sess.room = resolveRoom(acc, startRoom);
 
     sendSystem(socket, `Welcome back, ${acc.name}.`);
 
-    // 🔑 SEND PLAYER STATE FIRST
     sendPlayerState(socket, acc);
-
-    // 🌍 THEN SEND ROOM
     sendRoom(socket, sess.room);
 }
 
@@ -189,14 +203,11 @@ function resume(socket, sess, data, startRoom) {
 
     sess.state = "ready";
     sess.loginId = loginId;
-    sess.room = acc.lastRoom || startRoom;
+    sess.room = resolveRoom(acc, startRoom);
 
     sendSystem(socket, `Resuming your journey, ${acc.name}.`);
 
-    // 🔑 SEND PLAYER STATE FIRST
     sendPlayerState(socket, acc);
-
-    // 🌍 THEN SEND ROOM
     sendRoom(socket, sess.room);
 }
 
