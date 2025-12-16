@@ -12,6 +12,17 @@ function create(socket, startRoom) {
     });
 }
 
+function broadcastRoomRefresh(roomId) {
+    const Room = require("./room");
+
+    for (const [sock, sess] of sessions.entries()) {
+        if (sess.room === roomId && sess.state === "ready") {
+            Room.sendRoom(sock, roomId);
+        }
+    }
+}
+
+
 function remove(socket) {
     sessions.delete(socket);
 }
