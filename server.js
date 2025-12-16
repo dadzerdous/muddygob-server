@@ -150,7 +150,8 @@ function handleText(socket, input) {
             socket,
             sess,
             accounts: Accounts.data,
-            world: World.data,
+            world: World,
+
             sendRoom: Room.sendRoom,
             sendSystem: Sessions.sendSystem,
             commands,
