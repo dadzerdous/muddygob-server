@@ -1,7 +1,9 @@
 // ===============================================
 // commands/take.js
-// Take an item from inventory or room into hands
+// Hold an item from inventory or the room
 // ===============================================
+
+const World = require("../core/world");
 
 module.exports = {
     name: "take",
@@ -13,7 +15,6 @@ module.exports = {
             socket,
             sess,
             accounts,
-            world,
             sendSystem,
             sendRoom
         } = ctx;
@@ -34,7 +35,7 @@ module.exports = {
         const itemName = arg.toLowerCase();
 
         // ------------------------------------------
-        // 1️⃣ CHECK INVENTORY FIRST
+        // 1️⃣ INVENTORY → HANDS
         // ------------------------------------------
         if (Array.isArray(acc.inventory)) {
             const index = acc.inventory.indexOf(itemName);
@@ -49,9 +50,9 @@ module.exports = {
         }
 
         // ------------------------------------------
-        // 2️⃣ CHECK ROOM
+        // 2️⃣ ROOM → HANDS
         // ------------------------------------------
-        const room = world[sess.room];
+        const room = World.rooms[sess.room];
         if (!room || !room.objects) {
             return sendSystem(socket, "There is nothing here to take.");
         }
