@@ -91,6 +91,25 @@ function sendRoom(socket, id) {
             }
         }
     }
+    // -------------------------------------------
+// AMBIENT ITEM MATERIALIZATION (GENERIC)
+// -------------------------------------------
+if (room.ambient) {
+    if (!room.objects) room.objects = {};
+
+    for (const [itemId, rule] of Object.entries(room.ambient)) {
+        const max = rule.max ?? 1;
+
+        const existing = Object.values(room.objects)
+            .filter(o => o.itemId === itemId).length;
+
+        for (let i = existing; i < max; i++) {
+            const key = `${itemId}_${i + 1}`;
+            room.objects[key] = { itemId };
+        }
+    }
+}
+
 
     // -------------------------------------------
     // SEND ROOM PACKET
