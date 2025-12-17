@@ -8,7 +8,7 @@
 "exits": {
   "south": "forest-g3",
   "east": "forest-e2"
-}
+},
 
 
     "background": "forest-clearing.png"
