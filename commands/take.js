@@ -1,64 +1,55 @@
 // ===============================================
-// commands/take.js — AMBIENT ITEM MODEL (LOCKED)
+// take.js — Take item from room into hands
 // ===============================================
 
 module.exports = {
     name: "take",
     aliases: ["get", "grab"],
-    help: "take <item>",
 
-    execute(ctx, arg) {
-        const {
-            socket,
-            sess,
-            accounts,
-            world,
-            sendSystem,
-            sendRoom,
-            broadcastToRoomExcept
-        } = ctx;
+    execute(socket, sess, args) {
+        const Sessions = require("../core/sessions");
+        const Accounts = require("../core/accounts");
+        const World = require("../core/world");
 
-        if (!arg) return sendSystem(socket, "Take what?");
-
-        const acc = accounts[sess.loginId];
+        const acc = Accounts.data[sess.loginId];
         if (!acc) return;
 
-        // Already holding something
-        if (acc.heldItem) {
-            return sendSystem(socket,
-                acc.race === "goblin"
-                    ? "Don't get greedy."
-                    : "Your hands are already full."
-            );
+        const itemName = args[0];
+        if (!itemName) {
+            return Sessions.sendSystem(socket, "Take what?");
         }
 
-        const room = world.rooms[sess.room];
+        if (sess.hands) {
+            return Sessions.sendSystem(socket, "Your hands are already full.");
+        }
+
+        const room = World.rooms[sess.room];
         if (!room || !room.objects) {
-            return sendSystem(socket, "There is nothing here to take.");
+            return Sessions.sendSystem(socket, `There is no ${itemName} here.`);
         }
 
-        const key = arg.toLowerCase();
-        const obj = room.objects[key];
+        // 🔑 RESOLVE BY itemId (NOT instanceId)
+        const entry = Object.entries(room.objects)
+            .find(([_, obj]) => obj.itemId === itemName);
 
-        if (!obj || !obj.itemId) {
-            return sendSystem(socket, "You see no such thing.");
+        if (!entry) {
+            return Sessions.sendSystem(socket, `There is no ${itemName} here.`);
         }
 
-        // Remove from room FIRST
-        delete room.objects[key];
+        const [instanceId, obj] = entry;
 
-        // Attach to player hands
-        acc.heldItem = obj.itemId;
+        // Remove from room
+        delete room.objects[instanceId];
 
-        sendSystem(socket, `You pick up the ${key}.`);
+        // Put into hands (store instanceId)
+        sess.hands = instanceId;
 
-        const actor = acc?.name || "Someone";
-        broadcastToRoomExcept(
-            sess.room,
-            `${actor} picks up a ${key}.`,
-            socket
-        );
+        Accounts.save();
 
+        Sessions.sendSystem(socket, `You pick up the ${itemName}.`);
+
+        // Refresh room so item disappears visually
+        const { sendRoom } = require("../core/room");
         sendRoom(socket, sess.room);
     }
 };
