@@ -1,56 +1,47 @@
 // ===============================================
-// take.js — Take item from room into hands
+// commands/take.js — FIXED PARAM + HELDITEM + CTX
 // ===============================================
 
 module.exports = {
     name: "take",
     aliases: ["get", "grab"],
-
-    execute(socket, sess, args) {
-        const Sessions = require("../core/sessions");
-        const Accounts = require("../core/accounts");
-        const World = require("../core/world");
-        const { sendRoom } = require("../core/room");
-
-        const acc = Accounts.data[sess.loginId];
+    help: "take <item>",
+    
+    execute(ctx, args) {
+        const { socket, sess, accounts, world, sendSystem, sendRoom } = ctx;
+        
+        const acc = accounts[sess.loginId];
         if (!acc) return;
 
-        const itemName = args[0];
+        const itemName = (Array.isArray(args) ? args[0] : args)?.toLowerCase();
         if (!itemName) {
-            return Sessions.sendSystem(socket, "Take what?");
+            return sendSystem(socket, "Take what?");
         }
 
-if (acc.heldItem) {
-    return Sessions.sendSystem(socket, "Your hands are already full.");
-}
+        if (acc.heldItem) {
+            return sendSystem(socket, "Your hands are already full.");
+        }
 
-
-        const room = World.rooms[sess.room];
+        const room = world.rooms[sess.room];
         if (!room || !room.objects) {
-            return Sessions.sendSystem(socket, `There is no ${itemName} here.`);
+            return sendSystem(socket, `There is no ${itemName} here.`);
         }
 
-        // 🔑 find ANY instance of that itemId
+        // find object by itemId
         const entry = Object.entries(room.objects)
             .find(([_, obj]) => obj.itemId === itemName);
 
         if (!entry) {
-            return Sessions.sendSystem(socket, `There is no ${itemName} here.`);
+            return sendSystem(socket, `There is no ${itemName} here.`);
         }
 
         const [instanceId] = entry;
 
-        // remove instance from room
         delete room.objects[instanceId];
 
-        // hands hold ITEM TYPE, not instance
-       acc.heldItem = itemName;
+        acc.heldItem = itemName;
 
-
-        Accounts.save();
-
-        Sessions.sendSystem(socket, `You pick up the ${itemName}.`);
-
+        sendSystem(socket, `You pick up the ${itemName}.`);
         sendRoom(socket, sess.room);
     }
 };
