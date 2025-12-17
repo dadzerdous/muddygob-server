@@ -10,6 +10,11 @@ module.exports = {
         const Sessions = require("../core/sessions");
         const Accounts = require("../core/accounts");
         const World = require("../core/world");
+        const { sendRoom } = require("../core/room");
+
+// Ensure ambient items exist
+sendRoom(socket, sess.room);
+
 
         const acc = Accounts.data[sess.loginId];
         if (!acc) return;
