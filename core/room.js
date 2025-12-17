@@ -118,7 +118,8 @@ function handleMove(socket, sess, cmd, arg) {
     }
 
     const acc = Accounts.data[sess.loginId];
-    const actor = Theme.formatActor(acc);
+    const actor = acc?.name || "Someone";
+
 
     const oldRoom = sess.room;
     const newRoom = room.exits[dir];
