@@ -1,0 +1,24 @@
+{
+  "forest-e2": {
+    "title": "Mossy Trail Bend",
+    "text": [
+      "A narrow trail curves here, softened by deep green moss.",
+      "The air smells damp and old."
+    ],
+    "objects": {
+      "tree": {
+        "type": "scenery",
+        "emoji": "🌲",
+        "text": "An ancient tree with bark like folded leather."
+      }
+    },
+    "ambient": {
+      "rock": { "max": 1 }
+    },
+    "exits": {
+      "south": "forest-h3",
+      "west": "forest-d2"
+    },
+    "background": "forest-trail.png"
+  }
+}
