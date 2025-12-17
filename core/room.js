@@ -28,15 +28,16 @@ function sendRoom(socket, id) {
     const race = acc?.race;
 
     const room = World.rooms[id];
-    if (!room) {
-        console.error(
-            "[ROOM ERROR] Missing room:",
-            id,
-            "Known rooms:",
-            Object.keys(World.rooms)
-        );
-        return Sessions.sendSystem(socket, "The world frays here.");
-    }
+if (!room) {
+    console.error(
+        "[ROOM ERROR] Missing room:",
+        id,
+        "Known rooms:",
+        Object.keys(World.rooms)
+    );
+    return Sessions.sendSystem(socket, "The world frays here.");
+}
+
 
     // -------------------------------------------
     // AMBIENT ITEM MATERIALIZATION (GENERIC)
