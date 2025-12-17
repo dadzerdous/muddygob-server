@@ -45,6 +45,11 @@ module.exports = {
 
         // ✅ Only now clear hands
         acc.heldItem = null;
+        console.log(
+  "[DROP DEBUG] room objects after drop:",
+  JSON.stringify(room.objects)
+);
+
 
         sendSystem(socket, `You drop the ${itemId}.`);
 
