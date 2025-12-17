@@ -43,7 +43,8 @@ module.exports = {
         delete room.objects[instanceId];
 
         // hands hold ITEM TYPE, not instance
-        sess.hands = itemName;
+       acc.heldItem = itemName;
+
 
         Accounts.save();
 
