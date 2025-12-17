@@ -15,10 +15,11 @@
     "ambient": {
       "rock": { "max": 1 }
     },
-    "exits": {
-      "south": "forest-h3",
-      "west": "forest-d2"
-    },
+"exits": {
+  "west": "forest-d2",
+  "south": "forest-h3"
+}
+
     "background": "forest-trail.png"
   }
 }
