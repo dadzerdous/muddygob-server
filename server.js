@@ -165,4 +165,6 @@ function handleText(socket, input) {
 }
 
 console.log("[SERVER] Ready.");
+sendSystem(socket, "🔥 The world stirs. The server is ready.");
+
 
