@@ -39,6 +39,26 @@ function sendRoom(socket, id) {
     }
 
     // -------------------------------------------
+    // AMBIENT ITEM MATERIALIZATION (GENERIC)
+    // 🔥 MUST HAPPEN BEFORE objectList BUILD
+    // -------------------------------------------
+    if (room.ambient) {
+        if (!room.objects) room.objects = {};
+
+        for (const [itemId, rule] of Object.entries(room.ambient)) {
+            const max = rule.max ?? 1;
+
+            const existing = Object.values(room.objects)
+                .filter(o => o.itemId === itemId).length;
+
+            for (let i = existing; i < max; i++) {
+                const key = `${itemId}_${i + 1}`;
+                room.objects[key] = { itemId };
+            }
+        }
+    }
+
+    // -------------------------------------------
     // Players in room
     // -------------------------------------------
     const playersHere = [];
@@ -58,13 +78,12 @@ function sendRoom(socket, id) {
         ["You see nothing special."];
 
     // -------------------------------------------
-    // Objects
+    // Objects (NOW sees ambient items)
     // -------------------------------------------
     const objectList = [];
 
     if (room.objects) {
         for (const [name, obj] of Object.entries(room.objects)) {
-
             if (obj.itemId && World.items[obj.itemId]) {
                 const def = World.items[obj.itemId];
                 objectList.push({
@@ -91,25 +110,6 @@ function sendRoom(socket, id) {
             }
         }
     }
-    // -------------------------------------------
-// AMBIENT ITEM MATERIALIZATION (GENERIC)
-// -------------------------------------------
-if (room.ambient) {
-    if (!room.objects) room.objects = {};
-
-    for (const [itemId, rule] of Object.entries(room.ambient)) {
-        const max = rule.max ?? 1;
-
-        const existing = Object.values(room.objects)
-            .filter(o => o.itemId === itemId).length;
-
-        for (let i = existing; i < max; i++) {
-            const key = `${itemId}_${i + 1}`;
-            room.objects[key] = { itemId };
-        }
-    }
-}
-
 
     // -------------------------------------------
     // SEND ROOM PACKET
@@ -125,6 +125,7 @@ if (room.ambient) {
         objects: objectList
     }));
 }
+
 
 // -----------------------------------------------
 function handleMove(socket, sess, cmd, arg) {
