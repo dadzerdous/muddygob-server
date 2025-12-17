@@ -1,0 +1,24 @@
+{
+  "forest-h3": {
+    "title": "Thick Underbrush",
+    "text": [
+      "Dense brambles crowd the path here, tugging at your clothes.",
+      "The forest feels tighter, more watchful."
+    ],
+    "objects": {
+      "bushes": {
+        "type": "scenery",
+        "emoji": "🌿",
+        "text": "Thorny bushes tangled together in a natural wall."
+      }
+    },
+    "ambient": {
+      "rock": { "max": 1 }
+    },
+    "exits": {
+      "north": "forest-e2",
+      "west": "forest-g3"
+    },
+    "background": "forest-underbrush.png"
+  }
+}
