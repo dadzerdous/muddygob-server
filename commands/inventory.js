@@ -1,48 +1,46 @@
 // ===============================================
-// commands/inventory.js
-// Show carried items (SAFE VERSION)
+// commands/inventory.js — AUTHORITATIVE, FUTURE-PROOF
 // ===============================================
-
-const fs = require("fs");
-const path = require("path");
-
-const itemsDB = JSON.parse(
-    fs.readFileSync(
-        path.join(__dirname, "../world/items/rock.json"),
-        "utf8"
-    )
-);
 
 module.exports = {
     name: "inventory",
     aliases: ["inv", "i"],
-    help: "inventory\nShow what you are carrying.",
+    help: "inventory",
 
-    execute({ socket, sess, accounts, sendSystem }) {
+    execute(ctx) {
+        const { socket, sess, accounts, world, sendSystem } = ctx;
+
         const acc = accounts[sess.loginId];
+        if (!acc) return;
 
-        if (!acc) {
-            return sendSystem(socket, "You seem to have no body.");
-        }
+        const items = [];
 
-        if (!Array.isArray(acc.inventory) || acc.inventory.length === 0) {
-            return sendSystem(socket, "You are carrying nothing.");
-        }
-
-        const lines = [];
-
-        for (const id of acc.inventory) {
-            const item = itemsDB[id];
-            if (item) {
-                lines.push(`${item.emoji} ${id}`);
+        // Held item
+        if (acc.heldItem) {
+            const def = world.items[acc.heldItem];
+            if (def) {
+                items.push(`${def.emoji || ""} ${acc.heldItem}`);
             } else {
-                lines.push(id);
+                items.push(acc.heldItem);
             }
         }
 
-        return sendSystem(
-            socket,
-            "You are carrying:\n" + lines.join("\n")
-        );
+        // Backpack / inventory array (future-safe)
+        if (Array.isArray(acc.inventory)) {
+            for (const id of acc.inventory) {
+                const def = world.items[id];
+                if (def) {
+                    items.push(`${def.emoji || ""} ${id}`);
+                } else {
+                    items.push(id);
+                }
+            }
+        }
+
+        if (items.length === 0) {
+            return sendSystem(socket, "You are carrying nothing.");
+        }
+
+        sendSystem(socket, "You are carrying:\n• " + items.join("\n• "));
     }
 };
