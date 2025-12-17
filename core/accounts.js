@@ -83,7 +83,7 @@ function resolveRoom(acc, startRoom) {
 function create(socket, sess, data, startRoom) {
     const { sendSystem } = require("./sessions");
     const { sendRoom } = require("./room");
-    ensureAmbientItems(World.rooms[startRoom]);
+
 
     const baseName = (data.name || "").trim();
     const password = (data.password || "").trim();
@@ -156,7 +156,7 @@ function create(socket, sess, data, startRoom) {
 function login(socket, sess, data, startRoom) {
     const { sendSystem } = require("./sessions");
     const { sendRoom } = require("./room");
-ensureAmbientItems(World.rooms[startRoom]);
+
 
     const loginId = (data.login || "").trim().toLowerCase();
     const password = (data.password || "").trim();
