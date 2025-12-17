@@ -1,5 +1,5 @@
 // ===============================================
-// commands/take.js (FIXED: no formatActor)
+// commands/take.js — AMBIENT ITEM MODEL (LOCKED)
 // ===============================================
 
 module.exports = {
@@ -23,6 +23,15 @@ module.exports = {
         const acc = accounts[sess.loginId];
         if (!acc) return;
 
+        // Already holding something
+        if (acc.heldItem) {
+            return sendSystem(socket,
+                acc.race === "goblin"
+                    ? "Don't get greedy."
+                    : "Your hands are already full."
+            );
+        }
+
         const room = world.rooms[sess.room];
         if (!room || !room.objects) {
             return sendSystem(socket, "There is nothing here to take.");
@@ -35,16 +44,14 @@ module.exports = {
             return sendSystem(socket, "You see no such thing.");
         }
 
-        // Remove from room
+        // Remove from room FIRST
         delete room.objects[key];
 
-        // Put into hands
+        // Attach to player hands
         acc.heldItem = obj.itemId;
 
-        // Personal message
         sendSystem(socket, `You pick up the ${key}.`);
 
-        // Broadcast to others (safe)
         const actor = acc?.name || "Someone";
         broadcastToRoomExcept(
             sess.room,
@@ -52,10 +59,6 @@ module.exports = {
             socket
         );
 
-        // Update room for the player who acted
         sendRoom(socket, sess.room);
-
-        // NOTE: Do NOT broadcast null messages.
-        // Other players can "look" to refresh, or we can add a room-refresh packet later.
     }
 };
