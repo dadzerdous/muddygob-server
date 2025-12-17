@@ -29,7 +29,7 @@ module.exports = {
             return Sessions.sendSystem(socket, `There is no ${itemName} here.`);
         }
 
-        // 🔑 Find ANY instance with matching itemId
+        // 🔑 find ANY instance of that itemId
         const entry = Object.entries(room.objects)
             .find(([_, obj]) => obj.itemId === itemName);
 
@@ -37,19 +37,18 @@ module.exports = {
             return Sessions.sendSystem(socket, `There is no ${itemName} here.`);
         }
 
-        const [instanceId, obj] = entry;
+        const [instanceId] = entry;
 
-        // Remove instance from room
+        // remove instance from room
         delete room.objects[instanceId];
 
-        // Put ITEM TYPE into hands
+        // hands hold ITEM TYPE, not instance
         sess.hands = itemName;
 
         Accounts.save();
 
         Sessions.sendSystem(socket, `You pick up the ${itemName}.`);
 
-        // Refresh room AFTER removal
         sendRoom(socket, sess.room);
     }
 };
