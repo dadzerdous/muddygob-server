@@ -1,5 +1,5 @@
 // ===============================================
-// commands/drop.js — AMBIENT ITEM MODEL (LOCKED)
+// commands/drop.js — FIXED (itemId-safe)
 // ===============================================
 
 module.exports = {
@@ -27,27 +27,31 @@ module.exports = {
 
         if (!room.objects) room.objects = {};
 
-        // One rock per room rule
-        if (room.objects.rock) {
+        const itemId = acc.heldItem;
+
+        // 🔍 Check if THIS ITEM TYPE already exists in room
+        const alreadyHere = Object.values(room.objects)
+            .some(obj => obj.itemId === itemId);
+
+        if (alreadyHere) {
             return sendSystem(socket,
                 "This room doesn’t need another one of those."
             );
         }
 
-        const item = acc.heldItem;
+        // 🪨 Generate a safe object key
+        const key = itemId; // for now, one-per-room
+        room.objects[key] = { itemId };
 
-        // Place into room FIRST
-        room.objects.rock = { itemId: item };
-
-        // THEN clear hands
+        // ✅ Only now clear hands
         acc.heldItem = null;
 
-        sendSystem(socket, `You drop the ${item}.`);
+        sendSystem(socket, `You drop the ${itemId}.`);
 
         const actor = acc?.name || "Someone";
         broadcastToRoomExcept(
             sess.room,
-            `${actor} drops a ${item}.`,
+            `${actor} drops a ${itemId}.`,
             socket
         );
 
