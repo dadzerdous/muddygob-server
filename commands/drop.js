@@ -1,5 +1,5 @@
 // ===============================================
-// commands/drop.js (FIXED: no formatActor)
+// commands/drop.js — AMBIENT ITEM MODEL (LOCKED)
 // ===============================================
 
 module.exports = {
@@ -27,15 +27,23 @@ module.exports = {
 
         if (!room.objects) room.objects = {};
 
+        // One rock per room rule
+        if (room.objects.rock) {
+            return sendSystem(socket,
+                "This room doesn’t need another one of those."
+            );
+        }
+
         const item = acc.heldItem;
 
-        // Drop into the room under the item key (e.g., "rock")
-        room.objects[item] = { itemId: item };
+        // Place into room FIRST
+        room.objects.rock = { itemId: item };
+
+        // THEN clear hands
         acc.heldItem = null;
 
         sendSystem(socket, `You drop the ${item}.`);
 
-        // Broadcast to others (safe)
         const actor = acc?.name || "Someone";
         broadcastToRoomExcept(
             sess.room,
@@ -43,7 +51,6 @@ module.exports = {
             socket
         );
 
-        // Update room for the player who acted
         sendRoom(socket, sess.room);
     }
 };
