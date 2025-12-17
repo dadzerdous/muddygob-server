@@ -5,9 +5,11 @@
       "So so black"
     ],
 
-    "exits": {
-      "south": "forest-g3"
-    },
+"exits": {
+  "south": "forest-g3",
+  "east": "forest-e2"
+}
+
 
     "background": "forest-clearing.png"
   }
