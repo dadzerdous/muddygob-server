@@ -157,7 +157,7 @@ function handleMove(socket, sess, cmd, arg) {
     const { ensureAmbientItems } = require("./itemSpawner");
 
 ensureAmbientItems(World.rooms[newRoom]);
-sendRoom(socket, newRoom);
+
 
 
     sendRoom(socket, newRoom);
