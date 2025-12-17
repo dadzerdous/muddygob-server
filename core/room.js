@@ -154,6 +154,11 @@ function handleMove(socket, sess, cmd, arg) {
         `${actor} enters from ${oppositeDirection(dir)}.`,
         socket
     );
+    const { ensureAmbientItems } = require("./itemSpawner");
+
+ensureAmbientItems(World.rooms[newRoom]);
+sendRoom(socket, newRoom);
+
 
     sendRoom(socket, newRoom);
 }
