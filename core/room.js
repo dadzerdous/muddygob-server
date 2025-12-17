@@ -91,6 +91,19 @@ function sendRoom(socket, id) {
             }
         }
     }
+    // -------------------------------------------
+// AMBIENT ROCK RESPAWN (simple)
+// -------------------------------------------
+if (room.allowRock) {
+    const hasRock = room.objects &&
+        Object.values(room.objects).some(o => o.itemId === "rock");
+
+    if (!hasRock) {
+        if (!room.objects) room.objects = {};
+        room.objects.rock = { itemId: "rock" };
+    }
+}
+
 
     // -------------------------------------------
     // SEND ROOM PACKET
