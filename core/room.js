@@ -35,8 +35,20 @@ if (!room) {
         "Known rooms:",
         Object.keys(World.rooms)
     );
-    return Sessions.sendSystem(socket, "The world frays here.");
+
+    Sessions.sendSystem(socket, "The world frays… you are pulled back.");
+
+    // Fallback to last known room or safe start
+    const fallback = acc?.lastRoom && World.rooms[acc.lastRoom]
+        ? acc.lastRoom
+        : Object.keys(World.rooms)[0];
+
+    sess.room = fallback;
+
+    // Re-render safely
+    return sendRoom(socket, fallback);
 }
+
 
 
     // -------------------------------------------
