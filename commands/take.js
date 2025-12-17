@@ -20,9 +20,10 @@ module.exports = {
             return Sessions.sendSystem(socket, "Take what?");
         }
 
-        if (sess.hands) {
-            return Sessions.sendSystem(socket, "Your hands are already full.");
-        }
+if (acc.heldItem) {
+    return Sessions.sendSystem(socket, "Your hands are already full.");
+}
+
 
         const room = World.rooms[sess.room];
         if (!room || !room.objects) {
