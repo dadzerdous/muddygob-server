@@ -29,10 +29,13 @@ module.exports = {
         const objName = arg.trim().toLowerCase();
 
         // Check if object exists in room
-        const obj = room.objects?.[objName];
-        if (!obj) {
-            return sendSystem(socket, `You see no ${objName} here.`);
-        }
+const obj = Object.values(room.objects || {})
+    .find(o => o.itemId === objName);
+
+if (!obj) {
+    return sendSystem(socket, `You see no ${objName} here.`);
+}
+
 
         // If it's an item pointing to item database
         if (obj.itemId && World.items[obj.itemId]) {
