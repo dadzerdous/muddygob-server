@@ -1,8 +1,6 @@
 // ===============================================
-// commands/take.js
+// commands/take.js (FIXED: no formatActor)
 // ===============================================
-
-const { formatActor } = require("../core/room"); // or sessions
 
 module.exports = {
     name: "take",
@@ -32,6 +30,7 @@ module.exports = {
 
         const key = arg.toLowerCase();
         const obj = room.objects[key];
+
         if (!obj || !obj.itemId) {
             return sendSystem(socket, "You see no such thing.");
         }
@@ -45,15 +44,18 @@ module.exports = {
         // Personal message
         sendSystem(socket, `You pick up the ${key}.`);
 
-        // Broadcast to others
+        // Broadcast to others (safe)
+        const actor = acc?.name || "Someone";
         broadcastToRoomExcept(
             sess.room,
-            `${formatActor(acc)} picks up a ${key}.`,
+            `${actor} picks up a ${key}.`,
             socket
         );
 
-        // Update room for everyone
+        // Update room for the player who acted
         sendRoom(socket, sess.room);
-        broadcastToRoomExcept(sess.room, null, socket); // client will refresh room
+
+        // NOTE: Do NOT broadcast null messages.
+        // Other players can "look" to refresh, or we can add a room-refresh packet later.
     }
 };
