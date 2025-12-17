@@ -49,7 +49,9 @@ module.exports = {
         Sessions.sendSystem(socket, `You pick up the ${itemName}.`);
 
         // Refresh room so item disappears visually
-        const { sendRoom } = require("../core/room");
-        sendRoom(socket, sess.room);
+// Ensure ambient items exist before attempting take
+const { sendRoom } = require("../core/room");
+sendRoom(socket, sess.room);
+
     }
 };
