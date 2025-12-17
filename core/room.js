@@ -80,36 +80,40 @@ function sendRoom(socket, id) {
     // -------------------------------------------
     // Objects (NOW sees ambient items)
     // -------------------------------------------
-    const objectList = [];
+  const objectList = [];
 
-    if (room.objects) {
-        for (const [name, obj] of Object.entries(room.objects)) {
-            if (obj.itemId && World.items[obj.itemId]) {
-                const def = World.items[obj.itemId];
-                objectList.push({
-                    name,
-                    type: "item",
-                    emoji: def.emoji,
-                    actions: def.actions || ["look"],
-                    desc:
-                        (def.textByRace && race && def.textByRace[race]) ||
-                        def.text ||
-                        null
-                });
-            } else {
-                objectList.push({
-                    name,
-                    type: obj.type || "scenery",
-                    emoji: obj.emoji || "",
-                    actions: obj.actions || ["look"],
-                    desc:
-                        (obj.textByRace && race && obj.textByRace[race]) ||
-                        obj.text ||
-                        null
-                });
-            }
+if (room.objects) {
+    for (const [instanceId, obj] of Object.entries(room.objects)) {
+
+        if (obj.itemId && World.items[obj.itemId]) {
+            const def = World.items[obj.itemId];
+
+            objectList.push({
+                name: obj.itemId,          // 👈 PLAYER SEES THIS
+                instanceId,                // 👈 SERVER USES THIS
+                type: "item",
+                emoji: def.emoji,
+                actions: def.actions || ["look"],
+                desc:
+                    (def.textByRace && race && def.textByRace[race]) ||
+                    def.text ||
+                    null
+            });
+
+        } else {
+            objectList.push({
+                name: instanceId,          // scenery keeps its key
+                type: obj.type || "scenery",
+                emoji: obj.emoji || "",
+                actions: obj.actions || ["look"],
+                desc:
+                    (obj.textByRace && race && obj.textByRace[race]) ||
+                    obj.text ||
+                    null
+            });
         }
     }
+}
 
     // -------------------------------------------
     // SEND ROOM PACKET
