@@ -159,6 +159,10 @@ function handleText(socket, input) {
             oppositeDirection: Room.oppositeDirection,
             saveAccounts: Accounts.save
         }, arg);
+    
 
     Sessions.sendSystem(socket, "Nothing responds.");
 }
+
+console.log("[SERVER] Ready.");
+
