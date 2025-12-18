@@ -32,3 +32,22 @@
     elf: "It hums faintly."
   }
 }
+
+
+{
+  "scale_shield": {
+    "emoji": "🛡️",
+    "slot": "armor",
+    "defense": 3
+  }
+}
+
+
+{
+  "giant_fish": {
+    "hp": 50,
+    "attack": 4,
+    "emoji": "🐡",
+    "drop": "scale_shield"
+  }
+}
