@@ -179,6 +179,9 @@ function login(socket, sess, data, startRoom) {
     save();
 
     socket.send(JSON.stringify({ type: "session_token", token }));
+sess.hp = acc.hp ?? 100;
+sess.energy = acc.energy ?? 100;
+sess.stamina = acc.stamina ?? 100;
 
     sess.state = "ready";
     sess.loginId = loginId;
