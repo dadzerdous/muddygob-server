@@ -47,6 +47,6 @@ return sendSystem(socket,
 unique.join("\n") +
 `\n\nClick a command or type: help <command>`);
 
-        );
+        
     }
 };
