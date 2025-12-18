@@ -167,4 +167,30 @@ function handleText(socket, input) {
 console.log("[SERVER] Ready.");
 sendSystem(socket, "🔥 The world stirs. The server is ready.");
 
+setInterval(() => {
+    for (const [socket, sess] of Sessions.sessions.entries()) {
+        if (sess.state !== "ready") continue;
+
+        let changed = false;
+
+        if (sess.energy < 100) {
+            sess.energy = Math.min(100, sess.energy + 1);
+            changed = true;
+        }
+        if (sess.stamina < 100) {
+            sess.stamina = Math.min(100, sess.stamina + 1);
+            changed = true;
+        }
+
+        if (changed) {
+            socket.send(JSON.stringify({
+                type: "stats",
+                energy: sess.energy,
+                stamina: sess.stamina
+            }));
+        }
+    }
+}, 4000);
+
+
 
