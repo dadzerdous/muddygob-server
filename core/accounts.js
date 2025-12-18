@@ -146,10 +146,12 @@ function create(socket, sess, data, startRoom) {
 
     socket.send(JSON.stringify({ type: "session_token", token }));
 
-    sendSystem(socket, `A new ${race} awakens as ${baseName}.`);
+sendSystem(socket, `A new ${race} awakens as ${baseName}.`);
+sendSystem(socket, `${baseName} has entered the world.`);
+Sessions.broadcastToRoomExcept(socket, startRoom, `${baseName} enters.`);
+sendPlayerState(socket, accounts[loginId]);
+sendRoom(socket, startRoom);
 
-    sendPlayerState(socket, accounts[loginId]);
-    sendRoom(socket, startRoom);
 }
 
 // -----------------------------------------------
@@ -182,6 +184,10 @@ function login(socket, sess, data, startRoom) {
     sess.room = resolveRoom(acc, startRoom);
 
     sendSystem(socket, `Welcome back, ${acc.name}.`);
+    sendSystem(socket, `${acc.name} has entered the world.`);
+Sessions.broadcastToRoomExcept(socket, sess.room, `${acc.name} enters.`);
+   
+    
 
     sendPlayerState(socket, acc);
     sendRoom(socket, sess.room);
@@ -210,6 +216,9 @@ function resume(socket, sess, data, startRoom) {
     sess.room = resolveRoom(acc, startRoom);
 
     sendSystem(socket, `Resuming your journey, ${acc.name}.`);
+    sendSystem(socket, `${acc.name} has entered the world.`);
+Sessions.broadcastToRoomExcept(socket, sess.room, `${acc.name} materializes.`);
+
 
     sendPlayerState(socket, acc);
     sendRoom(socket, sess.room);
