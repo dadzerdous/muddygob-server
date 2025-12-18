@@ -1,5 +1,5 @@
 // ===============================================
-// commands/inventory.js — AUTHORITATIVE, FUTURE-PROOF
+// commands/inventory.js — CLICKABLE ITEMS
 // ===============================================
 
 module.exports = {
@@ -15,25 +15,28 @@ module.exports = {
 
         const items = [];
 
-        // Held item
+        // ---- HELD ITEM ----
         if (acc.heldItem) {
-            const def = world.items[acc.heldItem];
-            if (def) {
-                items.push(`${def.emoji || ""} ${acc.heldItem}`);
-            } else {
-                items.push(acc.heldItem);
-            }
+            const itemId = acc.heldItem;
+            const def = world.items[itemId] || {};
+            const emoji = def.emoji || "";
+
+            // Held items get DROP + STORE + LOOK
+            const actions = JSON.stringify(["drop", "store", "look"]);
+
+            items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions='${actions}'>${itemId}</span>`);
         }
 
-        // Backpack / inventory array (future-safe)
+        // ---- BACKPACK ITEMS ----
         if (Array.isArray(acc.inventory)) {
-            for (const id of acc.inventory) {
-                const def = world.items[id];
-                if (def) {
-                    items.push(`${def.emoji || ""} ${id}`);
-                } else {
-                    items.push(id);
-                }
+            for (const itemId of acc.inventory) {
+                const def = world.items[itemId] || {};
+                const emoji = def.emoji || "";
+
+                // Stored items get PULL + LOOK
+                const actions = JSON.stringify(["pull", "look"]);
+
+                items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions='${actions}'>${itemId}</span>`);
             }
         }
 
@@ -41,6 +44,8 @@ module.exports = {
             return sendSystem(socket, "You are carrying nothing.");
         }
 
-        sendSystem(socket, "You are carrying:\n• " + items.join("\n• "));
+        // ---- SEND AS SYSTEM MESSAGE ----
+        // Uses <br> so spans stay clickable
+        sendSystem(socket, "You are carrying:<br>• " + items.join("<br>• "));
     }
 };
