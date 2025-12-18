@@ -129,24 +129,25 @@ if (room.objects) {
 // -----------------------------------------------
 function handleMove(socket, sess, cmd, arg) {
     const dir = normalizeDirection(cmd, arg);
-    // ---------------- ENERGY DRAIN ----------------
-if (sess.energy <= 0) {
-    return Sessions.sendSystem(socket, "You are too exhausted to move.");
-}
 
-// drain 3 energy
-sess.energy = Math.max(0, sess.energy - 3);
+    // ENERGY CHECK
+    if (sess.energy <= 0) {
+        return Sessions.sendSystem(socket, "You are too exhausted to move.");
+    }
 
-// sync to accounts
-const acc = Accounts.data[sess.loginId];
-acc.energy = sess.energy;
-Accounts.save();
+    // drain 3 energy
+    sess.energy = Math.max(0, sess.energy - 3);
 
-// tell client
-socket.send(JSON.stringify({
-    type: "stats",
-    energy: sess.energy
-}));
+    // sync to accounts
+    const account = Accounts.data[sess.loginId];
+    account.energy = sess.energy;
+    Accounts.save();
+
+    // tell client
+    socket.send(JSON.stringify({
+        type: "stats",
+        energy: sess.energy
+    }));
 
     if (!dir) return Sessions.sendSystem(socket, "Move where?");
 
@@ -157,7 +158,6 @@ socket.send(JSON.stringify({
 
     const acc = Accounts.data[sess.loginId];
     const actor = acc?.name || "Someone";
-
 
     const oldRoom = sess.room;
     const newRoom = room.exits[dir];
@@ -173,14 +173,13 @@ socket.send(JSON.stringify({
         `${actor} enters from ${oppositeDirection(dir)}.`,
         socket
     );
+
     const { ensureAmbientItems } = require("./itemSpawner");
-
-ensureAmbientItems(World.rooms[newRoom]);
-
-
+    ensureAmbientItems(World.rooms[newRoom]);
 
     sendRoom(socket, newRoom);
 }
+
 
 // -----------------------------------------------
 function normalizeDirection(cmd, arg) {
