@@ -8,18 +8,13 @@ module.exports = {
 
     execute({ socket, sendSystem, commands }, arg) {
 
-        // ------------------------------------------
         // HELP <command>
-        // ------------------------------------------
         if (arg) {
             const key = arg.toLowerCase();
             const cmd = commands[key];
 
             if (!cmd || !cmd.help) {
-                return sendSystem(
-                    socket,
-                    `No help available for '${arg}'.`
-                );
+                return sendSystem(socket, `No help available for '${arg}'.`);
             }
 
             return sendSystem(
@@ -28,9 +23,7 @@ module.exports = {
             );
         }
 
-        // ------------------------------------------
-        // HELP (list commands)
-        // ------------------------------------------
+        // LIST ALL COMMANDS
         const unique = [];
         const seen = new Set();
 
@@ -38,15 +31,17 @@ module.exports = {
             if (!cmd.name) continue;
             if (seen.has(cmd.name)) continue;
             seen.add(cmd.name);
-            unique.push(`• <span class="cmd-help" data-cmd="${cmd.name}">${cmd.name}</span>`);
 
+            unique.push(
+                `• <span class="cmd-help" data-cmd="${cmd.name}">${cmd.name}</span>`
+            );
         }
 
-return sendSystem(socket,
-`📘 AVAILABLE COMMANDS:\n` +
-unique.join("\n") +
-`\n\nClick a command or type: help <command>`);
-
-        
+        return sendSystem(
+            socket,
+            `📘 AVAILABLE COMMANDS:\n` +
+            unique.join("\n") +
+            `\n\nClick a command or type: help <command>`
+        );
     }
 };
