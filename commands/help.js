@@ -38,7 +38,8 @@ module.exports = {
             if (!cmd.name) continue;
             if (seen.has(cmd.name)) continue;
             seen.add(cmd.name);
-            unique.push(`• ${cmd.name}`);
+            unique.push(`• <span class="cmd-help" data-cmd="${cmd.name}">${cmd.name}</span>`);
+
         }
 
         return sendSystem(
