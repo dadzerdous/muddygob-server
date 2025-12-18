@@ -5,7 +5,7 @@
     "emoji": "🪨",
     "weaponType": "fist",
     "range": "close",
-    "actions": ["look", "take", "sit", "hit", "throw"],
+    "actions": ["look", "take"],
     "textByRace": {
       "goblin": "This is potentially food or a weapon.",
       "human": "It's a rock.",
