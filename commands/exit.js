@@ -5,6 +5,7 @@ module.exports = {
 
     execute({ socket, sendSystem }) {
         sendSystem(socket, "You step out of the world.");
+        socket.send("manual_exit"); // notify client
         socket.close();
     }
 };
