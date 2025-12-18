@@ -42,11 +42,11 @@ module.exports = {
 
         }
 
-        return sendSystem(
-            socket,
-            `📘 AVAILABLE COMMANDS:\n` +
-            unique.join("\n") +
-            `\n\n Type: help <command> for details.`
+return sendSystem(socket,
+`📘 AVAILABLE COMMANDS:\n` +
+unique.join("\n") +
+`\n\nClick a command or type: help <command>`);
+
         );
     }
 };
