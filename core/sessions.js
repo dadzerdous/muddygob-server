@@ -8,7 +8,10 @@ function create(socket, startRoom) {
     sessions.set(socket, {
         state: "connected",
         loginId: null,
-        room: startRoom
+        room: startRoom,
+        hp: 100,
+        energy: 100,
+        stamina: 100
     });
 }
 
