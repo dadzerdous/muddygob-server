@@ -7,6 +7,7 @@ const fs = require("fs");
 const World = require("./world");
 const { ensureAmbientItems } = require("./itemSpawner");
 
+const Sessions = require("./sessions");
 
 const ACCOUNT_PATH = "accounts.json";
 
