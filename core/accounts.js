@@ -127,17 +127,18 @@ function create(socket, sess, data, startRoom) {
 
     const token = makeToken();
 
-    accounts[loginId] = {
-        name: baseName,
-        password,
-        race,
-        pronounKey,
-        pronouns: buildPronoun(pronounKey),
-        inventory: [],
-        lastRoom: startRoom,
-        sessionToken: token,
-        createdAt: Date.now()
-    };
+accounts[loginId] = {
+    name: baseName,
+    password,
+    race,
+    pronounKey,
+    pronouns: buildPronoun(pronounKey),
+    inventory: [],
+    lastRoom: startRoom,
+    sessionToken: token,
+    createdAt: Date.now()
+};
+
 
     save();
 
