@@ -129,6 +129,25 @@ if (room.objects) {
 // -----------------------------------------------
 function handleMove(socket, sess, cmd, arg) {
     const dir = normalizeDirection(cmd, arg);
+    // ---------------- ENERGY DRAIN ----------------
+if (sess.energy <= 0) {
+    return Sessions.sendSystem(socket, "You are too exhausted to move.");
+}
+
+// drain 3 energy
+sess.energy = Math.max(0, sess.energy - 3);
+
+// sync to accounts
+const acc = Accounts.data[sess.loginId];
+acc.energy = sess.energy;
+Accounts.save();
+
+// tell client
+socket.send(JSON.stringify({
+    type: "stats",
+    energy: sess.energy
+}));
+
     if (!dir) return Sessions.sendSystem(socket, "Move where?");
 
     const room = getRoom(sess.room);
