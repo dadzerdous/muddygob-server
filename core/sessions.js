@@ -3,6 +3,8 @@
 // ===============================================
 
 const sessions = new Map(); // socket → {state, loginId, room}
+const Accounts = require("./accounts");
+
 
 setInterval(() => {
     for (const [sock, sess] of sessions.entries()) {
@@ -22,14 +24,22 @@ setInterval(() => {
             changed = true;
         }
 
-        if (changed) {
-            sock.send(JSON.stringify({
-                type: "stats",
-                energy: sess.energy,
-                stamina: sess.stamina
-            }));
-        }
+if (changed) {
+    // sync to account file
+    const acc = Accounts.data[sess.loginId];
+    if (acc) {
+        acc.energy = sess.energy;
+        acc.stamina = sess.stamina;
+        Accounts.save();
     }
+
+    sock.send(JSON.stringify({
+        type: "stats",
+        energy: sess.energy,
+        stamina: sess.stamina
+    }));
+}
+
 }, 3000);
 
 
