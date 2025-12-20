@@ -1,5 +1,5 @@
 // ===============================================
-// commands/look.js — ROOM + HANDS + INVENTORY
+// commands/look.js — ROOM + HANDS + INVENTORY + PLAYER INSPECT
 // ===============================================
 
 const Accounts = require("../core/accounts");
@@ -9,9 +9,10 @@ const World = require("../core/world");
 module.exports = {
     name: "look",
     aliases: ["l"],
-    help: "Look at the room or an object.",
+    help: "Look at the room, an object, or a player.",
 
-    execute({ socket, sess, sendRoom, sendSystem }, arg) {
+    execute(ctx, arg) {
+        const { socket, sess, sendRoom, sendSystem, commands } = ctx;
 
         // If no argument → show room
         if (!arg || arg.trim() === "") {
@@ -22,8 +23,25 @@ module.exports = {
 
         const acc = Accounts.data[sess.loginId];
         if (!acc) return;
-
         const race = acc.race || "human";
+
+        // ---------------------------------------
+        // 0) PLAYER INSPECT: look <player>
+        // ---------------------------------------
+        for (const [sock, s] of Sessions.sessions.entries()) {
+            if (s.room !== sess.room || s.state !== "ready") continue;
+
+            const other = Accounts.data[s.loginId];
+            if (!other) continue;
+
+            if (objName === other.name.toLowerCase()) {
+                if (commands["inspect"]) {
+                    return commands["inspect"].execute(ctx, objName);
+                } else {
+                    return sendSystem(socket, "Inspect is not available yet.");
+                }
+            }
+        }
 
         // ---------------------------------------
         // 1) LOOK AT HELD ITEM
@@ -77,7 +95,7 @@ module.exports = {
             return sendSystem(socket, `You see no ${objName} here.`);
         }
 
-        // If it's an item pointing to item database
+        // If item points to item database
         if (target.itemId && World.items[target.itemId]) {
             const def = World.items[target.itemId];
             const desc =
