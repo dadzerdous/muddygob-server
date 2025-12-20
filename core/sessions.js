@@ -4,21 +4,34 @@
 
 const sessions = new Map(); // socket → {state, loginId, room}
 
-// Every 3 seconds, restore 2 energy & 1 stamina
 setInterval(() => {
-    for (const sess of sessions.values()) {
+    for (const [sock, sess] of sessions.entries()) {
         if (sess.state !== "ready") continue;
+
+        let changed = false;
 
         // Energy regen
         if (sess.energy < 100) {
             sess.energy = Math.min(100, sess.energy + 2);
+            changed = true;
         }
+
         // Stamina regen
         if (sess.stamina < 100) {
             sess.stamina = Math.min(100, sess.stamina + 1);
+            changed = true;
+        }
+
+        if (changed) {
+            sock.send(JSON.stringify({
+                type: "stats",
+                energy: sess.energy,
+                stamina: sess.stamina
+            }));
         }
     }
 }, 3000);
+
 
 
 function create(socket, startRoom) {
