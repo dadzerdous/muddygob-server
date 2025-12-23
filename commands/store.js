@@ -38,12 +38,14 @@ module.exports = {
             );
         }
 
-        // Move item: hands → inventory
-        acc.inventory.push(itemId);
- socket.send(JSON.stringify({
+acc.inventory.push(itemId);
+acc.heldItem = null;
+
+socket.send(JSON.stringify({
     type: "held",
     item: null
 }));
+
 
 
         sendSystem(socket,
