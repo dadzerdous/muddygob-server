@@ -51,7 +51,6 @@ module.exports = {
     data: accounts,
     save,
     updateVitals,
-    create,
     login,
     resume
 };
