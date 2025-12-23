@@ -41,6 +41,18 @@ module.exports = {
 
         acc.heldItem = itemName;
 
+acc.heldItem = itemName;
+
+// Notify client hands UI (authoritative)
+socket.send(JSON.stringify({
+    type: "held",
+    item: acc.heldItem
+}));
+
+sendSystem(socket, `You pick up the ${itemName}.`);
+sendRoom(socket, sess.room);
+
+        
         sendSystem(socket, `You pick up the ${itemName}.`);
         sendRoom(socket, sess.room);
     }
