@@ -1,5 +1,5 @@
 // ===============================================
-// commands/take.js — FIXED PARAM + HELDITEM + CTX
+// commands/take.js — AUTHORITATIVE HANDS FIXED
 // ===============================================
 
 module.exports = {
@@ -27,7 +27,7 @@ module.exports = {
             return sendSystem(socket, `There is no ${itemName} here.`);
         }
 
-        // find object by itemId
+        // Find object by itemId
         const entry = Object.entries(room.objects)
             .find(([_, obj]) => obj.itemId === itemName);
 
@@ -37,22 +37,19 @@ module.exports = {
 
         const [instanceId] = entry;
 
+        // Remove from room
         delete room.objects[instanceId];
 
+        // Set held item
         acc.heldItem = itemName;
 
-acc.heldItem = itemName;
+        // 🔔 Notify client (authoritative)
+        socket.send(JSON.stringify({
+            type: "held",
+            item: acc.heldItem
+        }));
 
-// Notify client hands UI (authoritative)
-socket.send(JSON.stringify({
-    type: "held",
-    item: acc.heldItem
-}));
-
-sendSystem(socket, `You pick up the ${itemName}.`);
-sendRoom(socket, sess.room);
-
-        
+        // Feedback + room update
         sendSystem(socket, `You pick up the ${itemName}.`);
         sendRoom(socket, sess.room);
     }
