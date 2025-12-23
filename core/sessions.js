@@ -6,41 +6,41 @@ const sessions = new Map(); // socket → {state, loginId, room}
 const Accounts = require("./accounts");
 
 
-setInterval(() => {
+function regenTick() {
     for (const [sock, sess] of sessions.entries()) {
         if (sess.state !== "ready") continue;
 
         let changed = false;
 
-        // Energy regen
         if (sess.energy < 100) {
             sess.energy = Math.min(100, sess.energy + 2);
             changed = true;
         }
 
-        // Stamina regen
         if (sess.stamina < 100) {
             sess.stamina = Math.min(100, sess.stamina + 1);
             changed = true;
         }
 
-if (changed) {
-    // sync to account file
-    const acc = Accounts.data[sess.loginId];
-    if (acc) {
-        acc.energy = sess.energy;
-        acc.stamina = sess.stamina;
-        Accounts.save();
-    }
+        if (changed) {
+            const acc = Accounts.data[sess.loginId];
+            if (acc) {
+                acc.energy = sess.energy;
+                acc.stamina = sess.stamina;
+                Accounts.save();
+            }
 
-    sock.send(JSON.stringify({
-        type: "stats",
-        energy: sess.energy,
-        stamina: sess.stamina
-    }));
+            sock.send(JSON.stringify({
+                type: "stats",
+                energy: sess.energy,
+                stamina: sess.stamina
+            }));
+        }
+    }
 }
 
-}, 3000);
+setInterval(regenTick, 3000);
+
 
 
 
