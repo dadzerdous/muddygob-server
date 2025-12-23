@@ -2,9 +2,11 @@
 // core/sessions.js
 // ===============================================
 
-const sessions = new Map();
+const sessions = new Map(); // socket → session
 const Accounts = require("./accounts");
 
+// -----------------------------------------------
+// Regen tick (energy + stamina)
 // -----------------------------------------------
 function regenTick() {
     for (const [sock, sess] of sessions.entries()) {
@@ -23,7 +25,7 @@ function regenTick() {
         }
 
         if (changed) {
-            // ✅ SAFE: delegate persistence
+            // Persist via accounts (safe, no circular access)
             Accounts.updateVitals(
                 sess.loginId,
                 sess.energy,
@@ -42,6 +44,8 @@ function regenTick() {
 setInterval(regenTick, 3000);
 
 // -----------------------------------------------
+// Session lifecycle
+// -----------------------------------------------
 function create(socket, startRoom) {
     sessions.set(socket, {
         state: "connected",
@@ -53,7 +57,6 @@ function create(socket, startRoom) {
     });
 }
 
-// -----------------------------------------------
 function remove(socket) {
     sessions.delete(socket);
 }
@@ -62,8 +65,29 @@ function get(socket) {
     return sessions.get(socket);
 }
 
+// -----------------------------------------------
+// Messaging helpers
+// -----------------------------------------------
 function sendSystem(socket, msg) {
-    socket.send(JSON.stringify({ type: "system", msg }));
+    socket.send(JSON.stringify({
+        type: "system",
+        msg
+    }));
+}
+
+// -----------------------------------------------
+// Player count broadcast (USED BY server.js)
+// -----------------------------------------------
+function broadcastPlayerCount() {
+    const count = [...sessions.values()]
+        .filter(s => s.state === "ready").length;
+
+    for (const [sock] of sessions.entries()) {
+        sock.send(JSON.stringify({
+            type: "players_online",
+            count
+        }));
+    }
 }
 
 // -----------------------------------------------
@@ -72,5 +96,6 @@ module.exports = {
     create,
     remove,
     get,
-    sendSystem
+    sendSystem,
+    broadcastPlayerCount
 };
