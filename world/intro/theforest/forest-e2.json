@@ -13,13 +13,12 @@
       }
     },
     "ambient": {
-      "rock": { "max": 1 }
+      "twig": { "max": 1 }
     },
-"exits": {
-  "west": "forest-d2",
-  "south": "forest-h3"
-},
-
+    "exits": {
+      "west": "forest-d2",
+      "south": "forest-h3"
+    },
     "background": "forest-trail.png"
   }
 }
