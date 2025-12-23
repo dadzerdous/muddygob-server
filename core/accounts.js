@@ -3,8 +3,6 @@
 // ===============================================
 
 const fs = require("fs");
-const World = require("./world");
-const { ensureAmbientItems } = require("./itemSpawner");
 
 const ACCOUNT_PATH = "accounts.json";
 
@@ -32,7 +30,19 @@ function save() {
 }
 
 // -----------------------------------------------
-// ✅ NEW: Safe vitals update (called by sessions)
+// Account helpers
+// -----------------------------------------------
+function get(loginId) {
+    return accounts[loginId];
+}
+
+function set(loginId, data) {
+    accounts[loginId] = data;
+    save();
+}
+
+// -----------------------------------------------
+// ✅ Safe vitals update (used by sessions)
 // -----------------------------------------------
 function updateVitals(loginId, energy, stamina) {
     const acc = accounts[loginId];
@@ -44,13 +54,10 @@ function updateVitals(loginId, energy, stamina) {
 }
 
 // -----------------------------------------------
-// (everything else unchanged)
-// -----------------------------------------------
-
 module.exports = {
     data: accounts,
+    get,
+    set,
     save,
-    updateVitals,
-    login,
-    resume
+    updateVitals
 };
