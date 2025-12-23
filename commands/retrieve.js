@@ -29,19 +29,8 @@ module.exports = {
             return sendSystem(socket, `You are not carrying a ${itemName}.`);
         }
 
-        acc.inventory.splice(idx, 1);
-acc.heldItem = itemName;
-
-// Notify client hands UI (authoritative)
-socket.send(JSON.stringify({
-    type: "held",
-    item: acc.heldItem
-}));
-
-sendSystem(socket, `You pick up the ${itemName}.`);
 sendRoom(socket, sess.room);
+sendSystem(socket, `You pick up the ${itemName}.`);
 
-
-        sendSystem(socket, `You pull the ${itemName} from your pack.`);
     }
 };
