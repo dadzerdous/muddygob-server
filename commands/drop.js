@@ -44,7 +44,11 @@ module.exports = {
         room.objects[key] = { itemId };
 
         // ✅ Only now clear hands
-        acc.heldItem = null;
+socket.send(JSON.stringify({
+    type: "held",
+    item: null
+}));
+
         console.log(
   "[DROP DEBUG] room objects after drop:",
   JSON.stringify(room.objects)
