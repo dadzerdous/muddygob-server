@@ -56,8 +56,6 @@ function sendRoom(socket, id) {
     const { ensureAmbientItems } = require("./itemSpawner");
     ensureAmbientItems(room);
 
-
-
     // -------------------------------------------
     // PLAYERS IN ROOM
     // -------------------------------------------
@@ -129,35 +127,36 @@ function sendRoom(socket, id) {
     }
 
     // -------------------------------------------
-    // SEND ROOM PACKET
+    // SEND ROOM PACKET (SINGLE, GUARDED)
     // -------------------------------------------
     try {
-    const payload = {
-        type: "room",
-        id,
-        title: room.title || "Somewhere",
-        desc,
-        exits: Object.keys(room.exits || {}),
-        background: room.background || null,
-        players: playersHere,
-        objects: objectList
-    };
+        const payload = {
+            type: "room",
+            id,
+            title: room.title || "Somewhere",
+            desc,
+            exits: Object.keys(room.exits || {}),
+            background: room.background || null,
+            players: playersHere,
+            objects: objectList
+        };
 
-    console.log("📦 ROOM PAYLOAD READY:", {
-        id: payload.id,
-        title: payload.title,
-        descLines: Array.isArray(payload.desc) ? payload.desc.length : "not-array",
-        exits: payload.exits,
-        players: payload.players?.length ?? 0,
-        objects: payload.objects?.length ?? 0
-    });
+        console.log("📦 ROOM PAYLOAD READY:", {
+            id: payload.id,
+            title: payload.title,
+            descLines: Array.isArray(payload.desc) ? payload.desc.length : "not-array",
+            exits: payload.exits,
+            players: payload.players?.length ?? 0,
+            objects: payload.objects?.length ?? 0
+        });
 
-    socket.send(JSON.stringify(payload));
-    console.log("✅ ROOM PACKET SENT:", id);
-} catch (err) {
-    console.error("🔥 sendRoom() failed:", err);
+        socket.send(JSON.stringify(payload));
+        console.log("✅ ROOM PACKET SENT:", id);
+
+    } catch (err) {
+        console.error("🔥 sendRoom() failed:", err);
+    }
 }
-
 
 // -----------------------------------------------
 function handleMove(socket, sess, cmd, arg) {
