@@ -28,26 +28,47 @@ function sendRoom(socket, id) {
     const race = acc?.race;
 
     const room = World.rooms[id];
-if (!room) {
-    console.error(
-        "[ROOM ERROR] Missing room:",
-        id,
-        "Known rooms:",
-        Object.keys(World.rooms)
-    );
 
-    Sessions.sendSystem(socket, "The world frays… you are pulled back.");
+    // -------------------------------------------
+    // Room existence check FIRST
+    // -------------------------------------------
+    if (!room) {
+        console.error(
+            "[ROOM ERROR] Missing room:",
+            id,
+            "Known rooms:",
+            Object.keys(World.rooms)
+        );
 
-    // Fallback to last known room or safe start
-    const fallback = acc?.lastRoom && World.rooms[acc.lastRoom]
-        ? acc.lastRoom
-        : Object.keys(World.rooms)[0];
+        Sessions.sendSystem(socket, "The world frays… you are pulled back.");
 
-    sess.room = fallback;
+        const fallback =
+            acc?.lastRoom && World.rooms[acc.lastRoom]
+                ? acc.lastRoom
+                : Object.keys(World.rooms)[0];
 
-    // Re-render safely
-    return sendRoom(socket, fallback);
-}
+        sess.room = fallback;
+        return sendRoom(socket, fallback);
+    }
+
+    // -------------------------------------------
+    // Ensure ambient items exist BEFORE rendering
+    // -------------------------------------------
+    const { ensureAmbientItems } = require("./itemSpawner");
+    ensureAmbientItems(room);
+
+    // -------------------------------------------
+    // CLEANUP: remove item instances incorrectly stored as objects
+    // (temporary – safe to remove once rooms are clean)
+    // -------------------------------------------
+    if (room.objects) {
+        for (const key of Object.keys(room.objects)) {
+            if (key.includes("_") && room.objects[key]?.itemId) {
+                delete room.objects[key];
+            }
+        }
+    }
+
 
 
 
