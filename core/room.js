@@ -1,15 +1,14 @@
 // ===============================================
-// core/room.js — AUTHORITATIVE VERSION (FIXED)
+// core/room.js — AUTHORITATIVE VERSION (SAFE)
 // ===============================================
 
 const Sessions = require("./sessions");
 const Accounts = require("./accounts");
 const World = require("./world");
-const Theme = require("./theme");
 
 // -----------------------------------------------
 function oppositeDirection(dir) {
-    return { north:"south", south:"north", east:"west", west:"east" }[dir] || "somewhere";
+    return { north: "south", south: "north", east: "west", west: "east" }[dir] || "somewhere";
 }
 
 // -----------------------------------------------
@@ -30,7 +29,7 @@ function sendRoom(socket, id) {
     const room = World.rooms[id];
 
     // -------------------------------------------
-    // Room existence check FIRST
+    // ROOM EXISTENCE CHECK (FIRST, ALWAYS)
     // -------------------------------------------
     if (!room) {
         console.error(
@@ -52,14 +51,13 @@ function sendRoom(socket, id) {
     }
 
     // -------------------------------------------
-    // Ensure ambient items exist BEFORE rendering
+    // ENSURE AMBIENT ITEMS
     // -------------------------------------------
     const { ensureAmbientItems } = require("./itemSpawner");
     ensureAmbientItems(room);
 
     // -------------------------------------------
-    // CLEANUP: remove item instances incorrectly stored as objects
-    // (temporary – safe to remove once rooms are clean)
+    // CLEANUP: remove old item instances from objects
     // -------------------------------------------
     if (room.objects) {
         for (const key of Object.keys(room.objects)) {
@@ -69,13 +67,8 @@ function sendRoom(socket, id) {
         }
     }
 
-
-
-
-
-
     // -------------------------------------------
-    // Players in room
+    // PLAYERS IN ROOM
     // -------------------------------------------
     const playersHere = [];
     for (const [sock, s] of Sessions.sessions.entries()) {
@@ -86,71 +79,63 @@ function sendRoom(socket, id) {
     }
 
     // -------------------------------------------
-    // Description (race-aware)
+    // ROOM DESCRIPTION (BASE)
     // -------------------------------------------
-let desc = Array.isArray(
-    (room.textByRace && race && room.textByRace[race]) || room.text
-)
-    ? [...((room.textByRace && race && room.textByRace[race]) || room.text)]
-    : ["You see nothing special."];
+    let desc = Array.isArray(
+        (room.textByRace && race && room.textByRace[race]) || room.text
+    )
+        ? [...((room.textByRace && race && room.textByRace[race]) || room.text)]
+        : ["You see nothing special."];
 
-// Inject ambient item flavor lines
-if (room.items) {
-    for (const instance of room.items) {
-        const def = World.items[instance.defId];
-        if (!def) continue;
+    // -------------------------------------------
+    // OBJECT LIST (SCENERY + ITEMS)
+    // -------------------------------------------
+    const objectList = [];
 
-        desc.push(
-            `A ${def.emoji} <span class="obj"
-                data-name="${def.id}"
-                data-actions='["look","take"]'>
-                ${def.name.toLowerCase()}
-            </span> lies here.`
-        );
+    // ---------- SCENERY ----------
+    if (room.objects) {
+        for (const [key, obj] of Object.entries(room.objects)) {
+            objectList.push({
+                name: key,
+                type: "scenery",
+                emoji: obj.emoji || "",
+                actions: obj.actions || ["look"],
+                desc:
+                    (obj.textByRace && race && obj.textByRace[race]) ||
+                    obj.text ||
+                    null
+            });
+        }
     }
-}
 
+    // ---------- AMBIENT ITEMS ----------
+    if (room.ambient) {
+        for (const itemId of Object.keys(room.ambient)) {
+            const def = World.items[itemId];
+            if (!def) continue;
 
+            // Description line
+            desc.push(
+                `A ${def.emoji} <span class="obj"
+                    data-name="${def.id}"
+                    data-actions='["look","take"]'>
+                    ${def.name.toLowerCase()}
+                </span> lies here.`
+            );
 
-// -------------------------------------------
-// Objects (scenery + ambient items, CLEAN)
-// -------------------------------------------
-const objectList = [];
-
-// 1️⃣ Scenery objects (tree, altar, etc)
-if (room.objects) {
-    for (const [key, obj] of Object.entries(room.objects)) {
-        objectList.push({
-            name: key,                         // scenery key is safe
-            type: "scenery",
-            emoji: obj.emoji || "",
-            actions: obj.actions || ["look"],
-            desc:
-                (obj.textByRace && race && obj.textByRace[race]) ||
-                obj.text ||
-                null
-        });
+            // Object entry
+            objectList.push({
+                name: def.id,
+                type: "item",
+                emoji: def.emoji,
+                actions: ["look", "take"],
+                desc:
+                    (def.textByRace && race && def.textByRace[race]) ||
+                    def.text ||
+                    null
+            });
+        }
     }
-}
-
-// 2️⃣ Ambient item instances (twig, rock, etc)
-if (room.items) {
-    for (const instance of room.items) {
-        const def = World.items[instance.defId];
-        if (!def) continue;
-
-        objectList.push({
-            name: def.id,                      // ✅ PLAYER NAME
-            type: "item",
-            emoji: def.emoji,
-            actions: ["look", "take"],
-            desc:
-                (def.textByRace && race && def.textByRace[race]) ||
-                def.text ||
-                null
-        });
-    }
-}
 
     // -------------------------------------------
     // SEND ROOM PACKET
@@ -167,40 +152,34 @@ if (room.items) {
     }));
 }
 
-
 // -----------------------------------------------
 function handleMove(socket, sess, cmd, arg) {
     const dir = normalizeDirection(cmd, arg);
 
-    // ENERGY CHECK
+    if (!dir) return Sessions.sendSystem(socket, "Move where?");
+
     if (sess.energy <= 0) {
         return Sessions.sendSystem(socket, "You are too exhausted to move.");
     }
 
-    // drain 3 energy
+    // Drain energy
     sess.energy = Math.max(0, sess.energy - 3);
 
-    // sync to accounts
-    const account = Accounts.data[sess.loginId];
-    account.energy = sess.energy;
+    const acc = Accounts.data[sess.loginId];
+    acc.energy = sess.energy;
     Accounts.save();
 
-    // tell client
     socket.send(JSON.stringify({
         type: "stats",
         energy: sess.energy
     }));
-
-    if (!dir) return Sessions.sendSystem(socket, "Move where?");
 
     const room = getRoom(sess.room);
     if (!room?.exits?.[dir]) {
         return Sessions.sendSystem(socket, "You cannot go that way.");
     }
 
-    const acc = Accounts.data[sess.loginId];
     const actor = acc?.name || "Someone";
-
     const oldRoom = sess.room;
     const newRoom = room.exits[dir];
 
@@ -216,20 +195,16 @@ function handleMove(socket, sess, cmd, arg) {
         socket
     );
 
-    const { ensureAmbientItems } = require("./itemSpawner");
-    ensureAmbientItems(World.rooms[newRoom]);
-
     sendRoom(socket, newRoom);
 }
-
 
 // -----------------------------------------------
 function normalizeDirection(cmd, arg) {
     const map = {
-        n:"north", north:"north",
-        s:"south", south:"south",
-        e:"east",  east:"east",
-        w:"west",  west:"west"
+        n: "north", north: "north",
+        s: "south", south: "south",
+        e: "east", east: "east",
+        w: "west", west: "west"
     };
     return map[cmd] || map[arg] || null;
 }
