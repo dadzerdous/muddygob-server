@@ -67,46 +67,67 @@ if (!room) {
     // -------------------------------------------
     // Description (race-aware)
     // -------------------------------------------
-    const desc =
-        (room.textByRace && race && room.textByRace[race]) ||
-        room.text ||
-        ["You see nothing special."];
+let desc = Array.isArray(
+    (room.textByRace && race && room.textByRace[race]) || room.text
+)
+    ? [...((room.textByRace && race && room.textByRace[race]) || room.text)]
+    : ["You see nothing special."];
 
-    // -------------------------------------------
-    // Objects (NOW sees ambient items)
-    // -------------------------------------------
-  const objectList = [];
+// Inject ambient item flavor lines
+if (room.items) {
+    for (const instance of room.items) {
+        const def = World.items[instance.defId];
+        if (!def) continue;
 
+        desc.push(
+            `A ${def.emoji} <span class="obj"
+                data-name="${def.id}"
+                data-actions='["look","take"]'>
+                ${def.name.toLowerCase()}
+            </span> lies here.`
+        );
+    }
+}
+
+
+
+// -------------------------------------------
+// Objects (scenery + ambient items, CLEAN)
+// -------------------------------------------
+const objectList = [];
+
+// 1️⃣ Scenery objects (tree, altar, etc)
 if (room.objects) {
-    for (const [instanceId, obj] of Object.entries(room.objects)) {
+    for (const [key, obj] of Object.entries(room.objects)) {
+        objectList.push({
+            name: key,                         // scenery key is safe
+            type: "scenery",
+            emoji: obj.emoji || "",
+            actions: obj.actions || ["look"],
+            desc:
+                (obj.textByRace && race && obj.textByRace[race]) ||
+                obj.text ||
+                null
+        });
+    }
+}
 
-        if (obj.itemId && World.items[obj.itemId]) {
-            const def = World.items[obj.itemId];
+// 2️⃣ Ambient item instances (twig, rock, etc)
+if (room.items) {
+    for (const instance of room.items) {
+        const def = World.items[instance.defId];
+        if (!def) continue;
 
-            objectList.push({
-                name: obj.itemId,          // 👈 PLAYER SEES THIS
-                instanceId,                // 👈 SERVER USES THIS
-                type: "item",
-                emoji: def.emoji,
-                actions: def.actions || ["look"],
-                desc:
-                    (def.textByRace && race && def.textByRace[race]) ||
-                    def.text ||
-                    null
-            });
-
-        } else {
-            objectList.push({
-                name: instanceId,          // scenery keeps its key
-                type: obj.type || "scenery",
-                emoji: obj.emoji || "",
-                actions: obj.actions || ["look"],
-                desc:
-                    (obj.textByRace && race && obj.textByRace[race]) ||
-                    obj.text ||
-                    null
-            });
-        }
+        objectList.push({
+            name: def.id,                      // ✅ PLAYER NAME
+            type: "item",
+            emoji: def.emoji,
+            actions: ["look", "take"],
+            desc:
+                (def.textByRace && race && def.textByRace[race]) ||
+                def.text ||
+                null
+        });
     }
 }
 
