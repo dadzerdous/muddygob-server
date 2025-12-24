@@ -1,24 +1,27 @@
 // ===============================================
 // core/itemSpawner.js
-// Handles ambient / passive item spawning (FIXED)
 // ===============================================
 
 function ensureAmbientItems(room) {
     if (!room || !room.ambient) return;
 
-    // Live item instances live here ONLY
+    // Initialize items array if missing
     if (!room.items) room.items = [];
+
+    // Simple throttle: Don't check for respawns more than once every 30 seconds
+    const now = Date.now();
+    if (room.lastSpawnCheck && now - room.lastSpawnCheck < 30000) {
+        return; 
+    }
+    room.lastSpawnCheck = now;
 
     for (const [itemId, rule] of Object.entries(room.ambient)) {
         const max = rule.max ?? 1;
-
         const existing = room.items.filter(i => i.defId === itemId).length;
 
         for (let i = existing; i < max; i++) {
             room.items.push({
-                id: `${itemId}_${Date.now()}_${Math.random()
-                    .toString(36)
-                    .slice(2, 6)}`,
+                id: `${itemId}_${now}_${Math.random().toString(36).slice(2, 6)}`,
                 defId: itemId
             });
         }
