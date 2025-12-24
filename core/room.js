@@ -113,7 +113,9 @@ console.log("[SEND ROOM] requested:", id, "state:", sess.state, "loginId:", sess
 
             // Description line
 // Description line (plain text only)
-desc.push(`A ${def.emoji} ${def.name.toLowerCase()} lies here.`);
+const displayName = (def.name || itemId).toLowerCase();
+desc.push(`A ${def.emoji} ${displayName} lies here.`);
+
 
 
             // Object entry for the client-side interaction
