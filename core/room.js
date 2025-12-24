@@ -157,17 +157,7 @@ function sendRoom(socket, id) {
 } catch (err) {
     console.error("🔥 sendRoom() failed:", err);
 }
-    socket.send(JSON.stringify({
-        type: "room",
-        id,
-        title: room.title || "Somewhere",
-        desc,
-        exits: Object.keys(room.exits || {}),
-        background: room.background || null,
-        players: playersHere,
-        objects: objectList
-    }));
-}
+
 
 // -----------------------------------------------
 function handleMove(socket, sess, cmd, arg) {
