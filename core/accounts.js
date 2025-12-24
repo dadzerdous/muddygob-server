@@ -85,15 +85,12 @@ function create(socket, sess, data, startRoom) {
         token: loginId
     }));
 
-socket.send(JSON.stringify({
-    type: "player_state",
-    player: accounts[loginId]
-}));
+    socket.send(JSON.stringify({
+        type: "player_state",
+        player: accounts[loginId]
+    }));
 
-const Room = require("./room");
-Room.sendRoom(socket, startRoom);
-
-
+    // ✅ ENTER WORLD (ONCE)
     const Room = require("./room");
     Room.sendRoom(socket, startRoom);
 }
