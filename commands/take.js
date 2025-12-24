@@ -22,35 +22,36 @@ module.exports = {
             return sendSystem(socket, "Your hands are already full.");
         }
 
-        const room = world.rooms[sess.room];
-        if (!room || !room.objects) {
-            return sendSystem(socket, `There is no ${itemName} here.`);
-        }
+const room = World.rooms[sess.room];
+if (!room) {
+    return sendSystem(socket, "The world frays… nothing is here.");
+}
 
-        // Find object by itemId
-        const entry = Object.entries(room.objects)
-            .find(([_, obj]) => obj.itemId === itemName);
+// Ensure instances exist (safe guard)
+room.items = room.items || [];
 
-        if (!entry) {
-            return sendSystem(socket, `There is no ${itemName} here.`);
-        }
+// Find a live item instance in this room
+const idx = room.items.findIndex(inst => inst.defId === objName);
 
-        const [instanceId] = entry;
+if (idx === -1) {
+    return sendSystem(socket, `There is no ${objName} here.`);
+}
 
-        // Remove from room
-        delete room.objects[instanceId];
+// Remove it from the room
+room.items.splice(idx, 1);
 
-        // Set held item
-        acc.heldItem = itemName;
+// Put it in player hands (held item)
+acc.heldItem = objName;
+Accounts.save();
 
-        // 🔔 Notify client (authoritative)
-        socket.send(JSON.stringify({
-            type: "held",
-            item: acc.heldItem
-        }));
+// Tell client hands changed
+socket.send(JSON.stringify({
+    type: "held",
+    item: objName
+}));
 
-        // Feedback + room update
-        sendSystem(socket, `You pick up the ${itemName}.`);
-        sendRoom(socket, sess.room);
+sendSystem(socket, `You pick up the ${objName}.`);
+return sendRoom(socket, sess.room);
+
     }
 };
