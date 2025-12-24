@@ -89,6 +89,20 @@ function broadcastPlayerCount() {
         }));
     }
 }
+function broadcastToRoomExcept(roomId, msg, exceptSocket) {
+    for (const [sock, sess] of sessions.entries()) {
+        if (
+            sock !== exceptSocket &&
+            sess.state === "ready" &&
+            sess.room === roomId
+        ) {
+            sock.send(JSON.stringify({
+                type: "system",
+                msg
+            }));
+        }
+    }
+}
 
 // -----------------------------------------------
 module.exports = {
