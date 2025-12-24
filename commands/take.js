@@ -1,5 +1,5 @@
 // ===============================================
-// commands/take.js — AUTHORITATIVE HANDS (FIXED)
+// commands/take.js
 // ===============================================
 
 module.exports = {
@@ -10,69 +10,52 @@ module.exports = {
     execute(ctx, args) {
         const { socket, sess, accounts, world, sendSystem, sendRoom } = ctx;
 
-        // ---------------------------------------
-        // ACCOUNT CHECK
-        // ---------------------------------------
-        const acc = accounts[sess.loginId];
+        // 1. Account Check
+        const acc = accounts.data[sess.loginId];
         if (!acc) return;
 
-        // ---------------------------------------
-        // PARSE ITEM NAME
-        // ---------------------------------------
+        // 2. Parse Item Name
         const itemName = (Array.isArray(args) ? args[0] : args)?.toLowerCase();
         if (!itemName) {
             return sendSystem(socket, "Take what?");
         }
 
-        // ---------------------------------------
-        // HANDS CHECK
-        // ---------------------------------------
+        // 3. Hands Check (Prevent carrying multiple items)
         if (acc.heldItem) {
             return sendSystem(socket, "Your hands are already full.");
         }
 
-        // ---------------------------------------
-        // ROOM LOOKUP
-        // ---------------------------------------
+        // 4. Room Lookup
         const room = world.rooms[sess.room];
         if (!room) {
             return sendSystem(socket, "The world frays… nothing is here.");
         }
 
-        // ---------------------------------------
-        // ENSURE ITEM INSTANCES ARRAY
-        // ---------------------------------------
+        // 5. Find Item Instance in the room
+        // We check room.items because itemSpawner.js puts them there
         room.items = room.items || [];
-
-        // ---------------------------------------
-        // FIND ITEM INSTANCE
-        // ---------------------------------------
         const idx = room.items.findIndex(inst => inst.defId === itemName);
 
         if (idx === -1) {
             return sendSystem(socket, `There is no ${itemName} here.`);
         }
 
-        // ---------------------------------------
-        // REMOVE FROM ROOM
-        // ---------------------------------------
+        // 6. Remove from Room
         room.items.splice(idx, 1);
 
-        // ---------------------------------------
-        // PUT IN HANDS
-        // ---------------------------------------
+        // 7. Put in Hands & Save
         acc.heldItem = itemName;
         accounts.save();
 
-        // ---------------------------------------
-        // CLIENT UPDATE
-        // ---------------------------------------
+        // 8. Client Update
         socket.send(JSON.stringify({
             type: "held",
             item: itemName
         }));
 
         sendSystem(socket, `You pick up the ${itemName}.`);
+        
+        // Refresh the room for the player so the item disappears from view
         return sendRoom(socket, sess.room);
     }
 };
