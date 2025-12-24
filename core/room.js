@@ -112,13 +112,9 @@ console.log("[SEND ROOM] requested:", id, "state:", sess.state, "loginId:", sess
             const displayName = def.name || itemInstance.defId;
 
             // Description line
-            desc.push(
-                `A ${def.emoji || '📦'} <span class="obj" 
-                    data-name="${itemInstance.defId}" 
-                    data-actions='["look","take"]'>
-                    ${displayName.toLowerCase()}
-                </span> lies here.`
-            );
+// Description line (plain text only)
+desc.push(`A ${def.emoji} ${def.name.toLowerCase()} lies here.`);
+
 
             // Object entry for the client-side interaction
             objectList.push({
