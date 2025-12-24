@@ -1,6 +1,7 @@
 // ===============================================
 // core/room.js — AUTHORITATIVE VERSION (SAFE)
 // ===============================================
+console.log("🟣 core/room.js LOADED — v1.23 (Dec 24) 🟣");
 
 const Sessions = require("./sessions");
 const Accounts = require("./accounts");
