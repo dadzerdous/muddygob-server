@@ -103,31 +103,31 @@ console.log("[SEND ROOM] requested:", id, "state:", sess.state, "loginId:", sess
     }
 
 // ---------- AMBIENT ITEMS ----------
-    if (room.items) { // Loop through the LIVE items spawned by itemSpawner
-        for (const itemInstance of room.items) {
-            const def = World.items[itemInstance.defId];
-            if (!def) continue;
+// ---------- AMBIENT ITEMS (LIVE INSTANCES) ----------
+if (room.items) {
+    for (const itemInstance of room.items) {
+        const def = World.items[itemInstance.defId];
+        if (!def) continue;
 
-            // Use the key (defId) since that is your unique identifier
-            const displayName = def.name || itemInstance.defId;
+        const displayName = (def.name || itemInstance.defId).toLowerCase();
 
-            // Description line
-// Description line (plain text only)
-const displayName = (def.name || itemId).toLowerCase();
-desc.push(`A ${def.emoji} ${displayName} lies here.`);
+        // Plain-text description only
+        desc.push(`A ${def.emoji || ""} ${displayName} lies here.`);
 
-
-
-            // Object entry for the client-side interaction
-            objectList.push({
-                name: itemInstance.defId,
-                type: "item",
-                emoji: def.emoji || "",
-                actions: ["look", "take"],
-                desc: (def.textByRace && race && def.textByRace[race]) || def.text || "A simple item."
-            });
-        }
+        // Clickable object entry
+        objectList.push({
+            name: itemInstance.defId,
+            type: "item",
+            emoji: def.emoji || "",
+            actions: ["look", "take"],
+            desc:
+                (def.textByRace && race && def.textByRace[race]) ||
+                def.text ||
+                "A simple item."
+        });
     }
+}
+
     // -------------------------------------------
     // SEND ROOM PACKET (SINGLE, GUARDED)
     // -------------------------------------------
