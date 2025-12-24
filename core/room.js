@@ -19,10 +19,14 @@ function getRoom(roomId) {
 
 // -----------------------------------------------
 function sendRoom(socket, id) {
-    console.log("[SEND ROOM] requested:", id);
+const sess = Sessions.get(socket);
+if (!sess) {
+    console.log("❌ sendRoom: no session for socket");
+    return;
+}
 
-    const sess = Sessions.get(socket);
-    if (!sess) return;
+console.log("[SEND ROOM] requested:", id, "state:", sess.state, "loginId:", sess.loginId);
+
 
     const acc = Accounts.data[sess.loginId];
     const race = acc?.race;
