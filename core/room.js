@@ -56,16 +56,7 @@ function sendRoom(socket, id) {
     const { ensureAmbientItems } = require("./itemSpawner");
     ensureAmbientItems(room);
 
-    // -------------------------------------------
-    // CLEANUP: remove old item instances from objects
-    // -------------------------------------------
-    if (room.objects) {
-        for (const key of Object.keys(room.objects)) {
-            if (key.includes("_") && room.objects[key]?.itemId) {
-                delete room.objects[key];
-            }
-        }
-    }
+
 
     // -------------------------------------------
     // PLAYERS IN ROOM
