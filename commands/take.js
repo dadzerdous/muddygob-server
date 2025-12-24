@@ -11,7 +11,8 @@ module.exports = {
         const { socket, sess, accounts, world, sendSystem, sendRoom } = ctx;
 
         // 1. Account Check
-        const acc = accounts.data[sess.loginId];
+        const acc = accounts[sess.loginId];
+
         if (!acc) return;
 
         // 2. Parse Item Name
