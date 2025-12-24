@@ -111,5 +111,7 @@ module.exports = {
     remove,
     get,
     sendSystem,
-    broadcastPlayerCount
+    broadcastPlayerCount,
+    broadcastToRoomExcept
 };
+
