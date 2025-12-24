@@ -126,26 +126,42 @@ function handleJSON(socket, data) {
 
 // ------------------------------
 // Text commands (movement, say, look…)
+// ONLY CALLED AFTER LOGIN
 // ------------------------------
 function handleText(socket, input) {
     const sess = Sessions.get(socket);
-    if (!sess || sess.state !== "ready")
-        return Sessions.sendSystem(socket, "You must create or login first.");
 
+    // Safety: text commands require an active session
+    if (!sess || sess.state !== "ready") {
+        Sessions.sendSystem(socket, "You must create or login first.");
+        return;
+    }
+
+    // --------------------------------
     // Basic command parsing
+    // --------------------------------
     const [cmd, ...rest] = input.split(" ");
     const arg = rest.join(" ").trim();
     const lower = cmd.toLowerCase();
 
+    // --------------------------------
     // Built-in WHO command
-    if (lower === "who") return Sessions.doWho(socket);
+    // --------------------------------
+    if (lower === "who") {
+        return Sessions.doWho(socket);
+    }
 
-    // Movement shortcut
-    if (["n", "s", "e", "w", "north", "south", "east", "west", "move"].includes(lower))
+    // --------------------------------
+    // Movement shortcuts
+    // --------------------------------
+    if (["n", "s", "e", "w", "north", "south", "east", "west", "move"].includes(lower)) {
         return Room.handleMove(socket, sess, lower, arg);
+    }
 
+    // --------------------------------
     // Commands folder
-    if (commands[lower])
+    // --------------------------------
+    if (commands[lower]) {
         return commands[lower].execute({
             socket,
             sess,
@@ -159,38 +175,14 @@ function handleText(socket, input) {
             oppositeDirection: Room.oppositeDirection,
             saveAccounts: Accounts.save
         }, arg);
-    
+    }
 
+    // --------------------------------
+    // Fallback
+    // --------------------------------
     Sessions.sendSystem(socket, "Nothing responds.");
 }
 
 console.log("[SERVER] Ready.");
-
-
-setInterval(() => {
-    for (const [socket, sess] of Sessions.sessions.entries()) {
-        if (sess.state !== "ready") continue;
-
-        let changed = false;
-
-        if (sess.energy < 100) {
-            sess.energy = Math.min(100, sess.energy + 1);
-            changed = true;
-        }
-        if (sess.stamina < 100) {
-            sess.stamina = Math.min(100, sess.stamina + 1);
-            changed = true;
-        }
-
-        if (changed) {
-            socket.send(JSON.stringify({
-                type: "stats",
-                energy: sess.energy,
-                stamina: sess.stamina
-            }));
-        }
-    }
-}, 4000);
-
 
 
