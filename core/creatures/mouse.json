@@ -1,0 +1,48 @@
+{
+  "id": "mouse",
+  "emoji": "🐭",
+  "type": "animal",
+  "hostile": false,
+  "moves": true,
+  "tameable": true,
+
+  "movement": {
+    "chance": 0.4,
+    "cooldown": 6000
+  },
+
+  "textByRace": {
+    "goblin": "A small mouse scurries nearby, ribs visible beneath its fur.",
+    "human": "A mouse darts along the forest floor.",
+    "elf": "A small forest mouse pauses, whiskers twitching."
+  },
+
+  "interactions": {
+    "kill": {
+      "goblin": {
+        "xp": 1,
+        "morality": -1,
+        "drops": ["meat_scrap"]
+      },
+      "human": {
+        "xp": 1,
+        "morality": -1,
+        "drops": []
+      },
+      "elf": {
+        "blocked": true,
+        "msg": "You cannot bring yourself to harm it."
+      }
+    },
+
+    "tame": {
+      "elf": {
+        "allowed": true,
+        "msg": "The mouse accepts your presence."
+      },
+      "others": {
+        "allowed": false
+      }
+    }
+  }
+}
