@@ -6,21 +6,22 @@
 function ensureAmbientItems(room) {
     console.log(
         "[SPAWNER] RUN",
-        "room.id =", room.id,
-        "hasAmbient =", !!room.ambient,
-        "itemsBefore =", Array.isArray(room.items) ? room.items.length : "none"
+        "room.id =", room?.id,
+        "hasAmbient =", !!room?.ambient,
+        "itemsBefore =", Array.isArray(room?.items) ? room.items.length : "none"
+    );
 
     if (!room || !room.ambient) return;
 
     // Initialize items array if missing
     if (!room.items) room.items = [];
 
-    // Simple throttle: Don't check for respawns more than once every 30 seconds
-    const now = Date.now();
-    if (room.lastSpawnCheck && now - room.lastSpawnCheck < 30000) {
-        return; 
-    }
-    room.lastSpawnCheck = now;
+    // TEMP: disable throttle while debugging
+    // const now = Date.now();
+    // if (room.lastSpawnCheck && now - room.lastSpawnCheck < 30000) {
+    //     return;
+    // }
+    // room.lastSpawnCheck = now;
 
     for (const [itemId, rule] of Object.entries(room.ambient)) {
         const max = rule.max ?? 1;
@@ -28,12 +29,13 @@ function ensureAmbientItems(room) {
 
         for (let i = existing; i < max; i++) {
             room.items.push({
-                id: `${itemId}_${now}_${Math.random().toString(36).slice(2, 6)}`,
+                id: `${itemId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
                 defId: itemId
             });
         }
     }
 }
+
 
 module.exports = {
     ensureAmbientItems
