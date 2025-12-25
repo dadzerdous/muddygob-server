@@ -53,17 +53,23 @@ module.exports = {
         // ---------------------------------------
         room.items.splice(idx, 1);
 
-        // ---------------------------------------
-        // PUT IN HANDS
-        // ---------------------------------------
-        acc.heldItem = itemName;
-        require("../core/accounts").save();
+// ---------------------------------------
+// PUT IN HANDS
+// ---------------------------------------
+acc.heldItem = itemName;
+require("../core/accounts").save();
 
+// Tell client hands changed
+socket.send(JSON.stringify({
+    type: "held",
+    item: itemName
+}));
 
-        // ---------------------------------------
-        // FEEDBACK + RERENDER
-        // ---------------------------------------
-        sendSystem(socket, `You pick up the ${itemName}.`);
-        return sendRoom(socket, sess.room);
+// ---------------------------------------
+// FEEDBACK + RERENDER
+// ---------------------------------------
+sendSystem(socket, `You pick up the ${itemName}.`);
+return sendRoom(socket, sess.room);
+
     }
 };
