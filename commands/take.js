@@ -57,7 +57,8 @@ module.exports = {
         // PUT IN HANDS
         // ---------------------------------------
         acc.heldItem = itemName;
-        accounts.save();
+        require("../core/accounts").save();
+
 
         // ---------------------------------------
         // FEEDBACK + RERENDER
