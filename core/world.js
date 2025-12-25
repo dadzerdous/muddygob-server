@@ -41,6 +41,7 @@ function loadRooms(dir) {
 
                 // Each file may define one or more rooms
                 for (const key of Object.keys(json)) {
+                    json[key].id = key;
                     World.rooms[key] = json[key];
                 }
 
