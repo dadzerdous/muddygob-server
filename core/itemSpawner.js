@@ -1,9 +1,10 @@
 // ===============================================
 // core/itemSpawner.js
 // ===============================================
-console.log("[SPAWNER] room.id =", room.id, "ambient =", room.ambient);
+
 
 function ensureAmbientItems(room) {
+console.log("[SPAWNER] room.id =", room.id, "ambient =", room.ambient);
     if (!room || !room.ambient) return;
 
     // Initialize items array if missing
