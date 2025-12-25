@@ -74,11 +74,30 @@ module.exports = {
         // ---------------------------------------
         // 3) LOOK IN THE ROOM
         // ---------------------------------------
-        const room = World.rooms[sess.room];
-        if (!room) {
-            return sendSystem(socket, "This place does not exist.");
-        }
+const room = World.rooms[sess.room];
+if (!room) {
+    return sendSystem(socket, "This place does not exist.");
+}
 
+// ---------------------------------------
+// 3A) LOOK AT ITEM INSTANCES IN ROOM
+// ---------------------------------------
+if (Array.isArray(room.items)) {
+    const inst = room.items.find(i => i.defId === objName);
+    if (inst) {
+        const def = World.items[objName];
+        if (def) {
+            const desc =
+                (def.textByRace && race && def.textByRace[race]) ||
+                def.text ||
+                `You see nothing special about the ${objName}.`;
+            return sendSystem(socket, desc);
+        }
+    }
+}
+
+
+ 
         // find by obj key or by itemId
         let target = null;
 
