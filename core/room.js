@@ -112,7 +112,8 @@ if (room.items) {
         const displayName = (def.name || itemInstance.defId).toLowerCase();
 
         // Plain-text description only
-        desc.push(`A ${def.emoji || ""} ${displayName} lies here.`);
+        desc.push(`A ${displayName} lies here.`);
+
 
         // Clickable object entry
         objectList.push({
