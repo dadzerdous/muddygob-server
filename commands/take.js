@@ -1,5 +1,5 @@
 // ===============================================
-// commands/take.js — AUTHORITATIVE HANDS (FIXED)
+// commands/take.js — ROOM ITEMS (FINAL, ALIGNED)
 // ===============================================
 
 module.exports = {
@@ -7,19 +7,16 @@ module.exports = {
     aliases: ["get", "grab"],
     help: "take <item>",
 
-    execute(ctx, args) {
-        const { socket, sess, accounts, world, sendSystem, sendRoom } = ctx;
+    execute(ctx, arg) {
+        const { socket, sess, sendSystem, sendRoom, accounts, world } = ctx;
 
-        // ---------------------------------------
-        // ACCOUNT CHECK
-        // ---------------------------------------
         const acc = accounts[sess.loginId];
         if (!acc) return;
 
         // ---------------------------------------
-        // PARSE ITEM NAME
+        // PARSE INPUT
         // ---------------------------------------
-        const itemName = (Array.isArray(args) ? args[0] : args)?.toLowerCase();
+        const itemName = arg?.trim()?.toLowerCase();
         if (!itemName) {
             return sendSystem(socket, "Take what?");
         }
@@ -32,23 +29,21 @@ module.exports = {
         }
 
         // ---------------------------------------
-        // ROOM LOOKUP
+        // ROOM CHECK
         // ---------------------------------------
         const room = world.rooms[sess.room];
         if (!room) {
-            return sendSystem(socket, "The world frays… nothing is here.");
+            return sendSystem(socket, "This place does not exist.");
         }
 
-        // ---------------------------------------
-        // ENSURE ITEM INSTANCES ARRAY
-        // ---------------------------------------
-        room.items = room.items || [];
+        if (!Array.isArray(room.items)) {
+            return sendSystem(socket, `There is no ${itemName} here.`);
+        }
 
         // ---------------------------------------
         // FIND ITEM INSTANCE
         // ---------------------------------------
-        const idx = room.items.findIndex(inst => inst.defId === itemName);
-
+        const idx = room.items.findIndex(i => i.defId === itemName);
         if (idx === -1) {
             return sendSystem(socket, `There is no ${itemName} here.`);
         }
@@ -65,13 +60,8 @@ module.exports = {
         accounts.save();
 
         // ---------------------------------------
-        // CLIENT UPDATE
+        // FEEDBACK + RERENDER
         // ---------------------------------------
-        socket.send(JSON.stringify({
-            type: "held",
-            item: itemName
-        }));
-
         sendSystem(socket, `You pick up the ${itemName}.`);
         return sendRoom(socket, sess.room);
     }
