@@ -4,7 +4,12 @@
 
 
 function ensureAmbientItems(room) {
-console.log("[SPAWNER] room.id =", room.id, "ambient =", room.ambient);
+    console.log(
+        "[SPAWNER] RUN",
+        "room.id =", room.id,
+        "hasAmbient =", !!room.ambient,
+        "itemsBefore =", Array.isArray(room.items) ? room.items.length : "none"
+
     if (!room || !room.ambient) return;
 
     // Initialize items array if missing
