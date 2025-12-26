@@ -102,16 +102,16 @@ console.log("[SEND ROOM] requested:", id, "state:", sess.state, "loginId:", sess
         }
     }
 
-// ---------- AMBIENT ITEMS ----------
-// ---------- AMBIENT ITEMS (LIVE INSTANCES) ----------
+// ---------- ITEM INSTANCES ----------
 if (room.items) {
     for (const itemInstance of room.items) {
         const def = World.items[itemInstance.defId];
         if (!def) continue;
 
-        const displayName = (def.name || itemInstance.defId).toLowerCase();
+        // 1️⃣ Plain-text room description (NO HTML)
+        desc.push(`A ${def.emoji} ${def.name.toLowerCase()} lies here.`);
 
-        // Clickable object entry
+        // 2️⃣ Interactable object entry
         objectList.push({
             name: itemInstance.defId,
             type: "item",
@@ -124,6 +124,7 @@ if (room.items) {
         });
     }
 }
+
 
     // -------------------------------------------
     // SEND ROOM PACKET (SINGLE, GUARDED)
