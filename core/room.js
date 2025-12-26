@@ -108,8 +108,10 @@ if (room.items) {
         const def = World.items[itemInstance.defId];
         if (!def) continue;
 
-        // 1️⃣ Plain-text room description (NO HTML)
-        desc.push(`A ${def.emoji} ${def.name.toLowerCase()} lies here.`);
+const displayName = def.name || itemInstance.defId;
+
+desc.push(`A ${def.emoji} ${displayName} lies here.`);
+
 
         // 2️⃣ Interactable object entry
         objectList.push({
