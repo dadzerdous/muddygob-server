@@ -111,17 +111,6 @@ if (room.items) {
 
         const displayName = (def.name || itemInstance.defId).toLowerCase();
 
-        // Plain-text description only
-        desc.push(
-    `A ${def.emoji} <span class="obj"
-        data-name="${itemInstance.defId}"
-        data-actions='["look","take"]'>
-        ${displayName}
-    </span> lies here.`
-);
-
-
-
         // Clickable object entry
         objectList.push({
             name: itemInstance.defId,
