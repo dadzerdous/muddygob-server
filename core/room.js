@@ -84,8 +84,7 @@ function sendRoom(socket, id) {
             // Display name (pretty) vs identity (command-safe)
             const displayName = def.name || inst.defId;
 
-            // 1️⃣ Plain-text presence in room description
-            desc.push(`A ${def.emoji || ""} ${displayName} lies here.`);
+
 
             // 2️⃣ Interactable object entry
             objectList.push({
