@@ -6,12 +6,8 @@ const fs = require("fs");
 
 const ACCOUNT_PATH = "accounts.json";
 
-// In-memory store
 let accounts = {};
 
-// -----------------------------------------------
-// Load accounts
-// -----------------------------------------------
 if (fs.existsSync(ACCOUNT_PATH)) {
     try {
         accounts = JSON.parse(fs.readFileSync(ACCOUNT_PATH, "utf8"));
@@ -29,80 +25,132 @@ function save() {
     console.log("[ACCOUNTS] Saved accounts.json");
 }
 
+function get(loginId) { return accounts[loginId]; }
+function set(loginId, data) { accounts[loginId] = data; save(); }
+
 // -----------------------------------------------
-// Account helpers
+// Shared session activation helper
 // -----------------------------------------------
-function get(loginId) {
-    return accounts[loginId];
+function activateSession(socket, sess, acc, loginId, startRoom) {
+    const Room = require("./room");
+
+    const room = acc.lastRoom || acc.room || startRoom;
+
+    sess.loginId  = loginId;
+    sess.room     = room;
+    sess.energy   = acc.energy  ?? 100;
+    sess.stamina  = acc.stamina ?? 100;
+    sess.state    = "ready";
+
+    socket.send(JSON.stringify({ type: "session_token", token: loginId }));
+    socket.send(JSON.stringify({ type: "player_state",  player: acc }));
+    socket.send(JSON.stringify({
+        type: "stats",
+        level:   acc.level   ?? 1,
+        energy:  sess.energy,
+        stamina: sess.stamina,
+    }));
+
+    // Restore held item to client
+    if (acc.heldItem) {
+        socket.send(JSON.stringify({ type: "held", item: acc.heldItem }));
+    }
+
+    // Restore discoveries to client
+    if (Array.isArray(acc.discovered) && acc.discovered.length) {
+        socket.send(JSON.stringify({ type: "discovered", items: acc.discovered }));
+    }
+
+    Room.sendRoom(socket, room);
 }
 
-function set(loginId, data) {
-    accounts[loginId] = data;
-    save();
-}
+// -----------------------------------------------
+// CREATE
+// -----------------------------------------------
 function create(socket, sess, data, startRoom) {
     const { name, password, race, pronoun } = data;
 
-    if (!name || !password || !race) {
+    if (!name || !password || !race || !pronoun) {
         return socket.send(JSON.stringify({
-            type: "system",
-            msg: "Missing required fields."
+            type: "system", msg: "Missing required fields."
         }));
     }
 
-    const loginId = `${name}@${race}.${pronoun}`;
+    const loginId = `${name.toLowerCase()}@${race}.${pronoun}`;
 
     if (accounts[loginId]) {
         return socket.send(JSON.stringify({
-            type: "system",
-            msg: "That being already exists."
+            type: "system", msg: "That being already exists."
         }));
     }
 
-    // Create account
     accounts[loginId] = {
-        name,
-        password,
-        race,
-        pronoun,
-        room: startRoom,
-        energy: 100,
-        stamina: 100
+        name, password, race, pronoun,
+        room:       startRoom,
+        lastRoom:   startRoom,
+        energy:     100,
+        stamina:    100,
+        level:      1,
+        heldItem:   null,
+        inventory:  [],
+        discovered: [],
     };
 
     save();
-
-    // Activate session
-    sess.loginId = loginId;
-    sess.room = startRoom;
-    sess.energy = 100;
-    sess.stamina = 100;
-    sess.state = "ready";
-
-    // Send initial packets
-    socket.send(JSON.stringify({
-        type: "session_token",
-        token: loginId
-    }));
-
-    socket.send(JSON.stringify({
-        type: "player_state",
-        player: accounts[loginId]
-    }));
-
-    // ✅ ENTER WORLD (ONCE)
-    const Room = require("./room");
-    Room.sendRoom(socket, startRoom);
+    activateSession(socket, sess, accounts[loginId], loginId, startRoom);
 }
 
 // -----------------------------------------------
-// ✅ Safe vitals update (used by sessions)
+// LOGIN
+// -----------------------------------------------
+function login(socket, sess, data, startRoom) {
+    const { login: loginId, password } = data;
+
+    if (!loginId || !password) {
+        return socket.send(JSON.stringify({
+            type: "system", msg: "Missing login or password."
+        }));
+    }
+
+    const acc = accounts[loginId];
+
+    if (!acc) {
+        return socket.send(JSON.stringify({
+            type: "system", msg: "No such being exists."
+        }));
+    }
+
+    if (acc.password !== password) {
+        return socket.send(JSON.stringify({
+            type: "system", msg: "Wrong password."
+        }));
+    }
+
+    activateSession(socket, sess, acc, loginId, startRoom);
+}
+
+// -----------------------------------------------
+// RESUME (token re-auth)
+// -----------------------------------------------
+function resume(socket, sess, data, startRoom) {
+    const { token } = data;
+    const acc = accounts[token];
+
+    if (!acc) {
+        // Token invalid — just let client show welcome screen
+        return socket.send(JSON.stringify({
+            type: "system", msg: "Session expired. Please log in again."
+        }));
+    }
+
+    activateSession(socket, sess, acc, token, startRoom);
+}
+
 // -----------------------------------------------
 function updateVitals(loginId, energy, stamina) {
     const acc = accounts[loginId];
     if (!acc) return;
-
-    acc.energy = energy;
+    acc.energy  = energy;
     acc.stamina = stamina;
     save();
 }
@@ -110,10 +158,7 @@ function updateVitals(loginId, energy, stamina) {
 // -----------------------------------------------
 module.exports = {
     data: accounts,
-    get,
-    set,
-    save,
+    get, set, save,
+    create, login, resume,
     updateVitals,
-    create
 };
-
