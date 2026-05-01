@@ -1,21 +1,13 @@
 // ===============================================
-// commands/drop.js — FIXED (itemId-safe)
+// commands/drop.js
 // ===============================================
 
 module.exports = {
     name: "drop",
-    help: "drop",
+    help: "drop — drop your held item in the current room",
 
     execute(ctx) {
-        const {
-            socket,
-            sess,
-            accounts,
-            world,
-            sendSystem,
-            sendRoom,
-            broadcastToRoomExcept
-        } = ctx;
+        const { socket, sess, accounts, world, sendSystem, sendRoom, broadcastToRoomExcept } = ctx;
 
         const acc = accounts[sess.loginId];
         if (!acc || !acc.heldItem) {
@@ -25,47 +17,27 @@ module.exports = {
         const room = world.rooms[sess.room];
         if (!room) return;
 
-        if (!room.objects) room.objects = {};
-
         const itemId = acc.heldItem;
 
-        // 🔍 Check if THIS ITEM TYPE already exists in room
-        const alreadyHere = Object.values(room.objects)
-            .some(obj => obj.itemId === itemId);
+        // Use room.items (same array that take.js reads from)
+        if (!Array.isArray(room.items)) room.items = [];
 
-        if (alreadyHere) {
-            return sendSystem(socket,
-                "This room doesn’t need another one of those."
-            );
-        }
+        // Drop the item back as a new instance
+        room.items.push({
+            id: `${itemId}_${Date.now()}`,
+            defId: itemId,
+        });
 
-        // 🪨 Generate a safe object key
-        const key = itemId; // for now, one-per-room
-        room.objects[key] = { itemId };
+        // Clear hands
+        acc.heldItem = null;
+        require("../core/accounts").save();
 
-// ✅ Clear hands (authoritative)
-acc.heldItem = null;
-
-socket.send(JSON.stringify({
-    type: "held",
-    item: null
-}));
-
-
-        console.log(
-  "[DROP DEBUG] room objects after drop:",
-  JSON.stringify(room.objects)
-);
-
+        socket.send(JSON.stringify({ type: "held", item: null }));
 
         sendSystem(socket, `You drop the ${itemId}.`);
 
         const actor = acc?.name || "Someone";
-        broadcastToRoomExcept(
-            sess.room,
-            `${actor} drops a ${itemId}.`,
-            socket
-        );
+        broadcastToRoomExcept(sess.room, `${actor} drops a ${itemId}.`, socket);
 
         sendRoom(socket, sess.room);
     }
