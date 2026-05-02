@@ -1,15 +1,16 @@
-
-
 {
   "rock": {
+    "name": "Rock",
     "emoji": "🪨",
-    "weaponType": "fist",
-    "range": "close",
-    "actions": ["look", "take"],
+    "category": "weapon",
+    "slot": "hand",
+    "takeable": true,
+    "throwable": true,
+    "baseActions": ["look", "take"],
     "textByRace": {
-      "goblin": "This is potentially food or a weapon.",
+      "goblin": "Food or weapon.",
       "human": "It's a rock.",
-      "elf": "You can sense the teeniest arcane shimmer on this rock."
+      "elf": "It hums faintly."
     }
   }
 }
