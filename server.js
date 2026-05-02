@@ -13,7 +13,7 @@ process.on("unhandledRejection", err => {
     console.error("🔥 UNHANDLED PROMISE REJECTION:", err);
 });
 
-// ------------------------------
+// ------------------------------han
 // Load core modules
 // ------------------------------
 const Accounts = require("./core/accounts");
@@ -104,6 +104,8 @@ function handleIncoming(socket, raw) {
 function handleJSON(socket, data) {
     const sess = Sessions.get(socket);
     if (!sess) return;
+
+        console.log("[JSON]", data.type, data.name || data.login || data.token || "");
 
     // Heartbeat ping/pong
     if (data.type === "ping") return socket.send("pong");
