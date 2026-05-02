@@ -54,8 +54,9 @@ function activateSession(socket, sess, acc, loginId, startRoom, sendRoom) {
         socket.send(JSON.stringify({ type: "held", item: acc.heldItem }));
     }
 
-    if (Array.isArray(acc.discovered) && acc.discovered.length) {
-        socket.send(JSON.stringify({ type: "discovered", items: acc.discovered }));
+    // Send per-room discoveries so client can restore chips
+    if (acc.discovered && !Array.isArray(acc.discovered)) {
+        socket.send(JSON.stringify({ type: "discovered", perRoom: acc.discovered }));
     }
 
     console.log("[ACCOUNTS] activateSession — calling sendRoom for:", room);
