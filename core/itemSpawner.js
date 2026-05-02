@@ -2,41 +2,21 @@
 // core/itemSpawner.js
 // ===============================================
 
-
 function ensureAmbientItems(room) {
-    console.log(
-        "[SPAWNER] RUN",
-        "room.id =", room?.id,
-        "hasAmbient =", !!room?.ambient,
-        "itemsBefore =", Array.isArray(room?.items) ? room.items.length : "none"
-    );
+  if (!room || !room.ambient) return;
+  if (!room.items) room.items = [];
 
-    if (!room || !room.ambient) return;
+  for (const [itemId, rule] of Object.entries(room.ambient)) {
+    const max      = rule.max ?? 1;
+    const existing = room.items.filter(i => i.defId === itemId).length;
 
-    // Initialize items array if missing
-    if (!room.items) room.items = [];
-
-    // TEMP: disable throttle while debugging
-    // const now = Date.now();
-    // if (room.lastSpawnCheck && now - room.lastSpawnCheck < 30000) {
-    //     return;
-    // }
-    // room.lastSpawnCheck = now;
-
-    for (const [itemId, rule] of Object.entries(room.ambient)) {
-        const max = rule.max ?? 1;
-        const existing = room.items.filter(i => i.defId === itemId).length;
-
-        for (let i = existing; i < max; i++) {
-            room.items.push({
-                id: `${itemId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-                defId: itemId
-            });
-        }
+    for (let i = existing; i < max; i++) {
+      room.items.push({
+        id: `${itemId}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+        defId: itemId,
+      });
     }
+  }
 }
 
-
-module.exports = {
-    ensureAmbientItems
-};
+module.exports = { ensureAmbientItems };
