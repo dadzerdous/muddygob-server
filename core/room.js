@@ -85,15 +85,24 @@ console.log("[SEND ROOM] requested:", id, "state:", sess.state, "loginId:", sess
     // OBJECT LIST (SCENERY + ITEMS)
     // -------------------------------------------
     const objectList = [];
+    const seenIds    = new Set(); // deduplicate by id
+
+    // Per-player discovery map for this room
+    const playerDisc = acc?.discovered?.[id] || [];
+    const discSet    = new Set(playerDisc);
 
     // ---------- SCENERY ----------
     if (room.objects) {
         for (const [key, obj] of Object.entries(room.objects)) {
+            if (seenIds.has(key)) continue;
+            seenIds.add(key);
             objectList.push({
-                name: key,
-                type: "scenery",
-                emoji: obj.emoji || "",
-                actions: obj.actions || ["look"],
+                id:         key,
+                name:       key,
+                type:       "scenery",
+                emoji:      obj.emoji || "",
+                actions:    obj.actions || ["look"],
+                discovered: discSet.has(key),
                 desc:
                     (obj.textByRace && race && obj.textByRace[race]) ||
                     obj.text ||
@@ -102,53 +111,47 @@ console.log("[SEND ROOM] requested:", id, "state:", sess.state, "loginId:", sess
         }
     }
 
-// ---------- ITEM INSTANCES ----------
-if (room.items) {
-    for (const itemInstance of room.items) {
-        const def = World.items[itemInstance.defId];
-        if (!def) continue;
+    // ---------- ITEM INSTANCES ----------
+    if (room.items) {
+        for (const itemInstance of room.items) {
+            const def = World.items[itemInstance.defId];
+            if (!def) continue;
+            // Deduplicate — only show one entry per defId
+            if (seenIds.has(itemInstance.defId)) continue;
+            seenIds.add(itemInstance.defId);
 
-        // Inject roomText into description if defined
-        const roomText = itemInstance.roomText
-            || (room.ambient?.[itemInstance.defId]?.roomText)
-            || null;
-
-        if (roomText) {
-            desc.push(roomText);
+            objectList.push({
+                id:         itemInstance.defId,
+                name:       def.name || itemInstance.defId,
+                type:       "item",
+                emoji:      def.emoji || "",
+                actions:    ["look", "take"],
+                discovered: discSet.has(itemInstance.defId),
+                desc:
+                    (def.textByRace && race && def.textByRace[race]) ||
+                    def.text ||
+                    "A simple item."
+            });
         }
-
-        objectList.push({
-            id: itemInstance.defId,
-            name: def.name || itemInstance.defId,
-            type: "item",
-            emoji: def.emoji || "",
-            actions: ["look", "take"],
-            desc:
-                (def.textByRace && race && def.textByRace[race]) ||
-                def.text ||
-                "A simple item."
-        });
     }
-}
 
+    // Total unique discoverable objects
+    const totalDiscoverable = objectList.length;
 
     // -------------------------------------------
     // SEND ROOM PACKET (SINGLE, GUARDED)
     // -------------------------------------------
     try {
-        // Count all discoverable objects for the counter
-        const totalDiscoverable = objectList.length;
-
         const payload = {
             type: "room",
             id,
-            title: room.title || "Somewhere",
+            title:            room.title || "Somewhere",
             desc,
-            exits: Object.keys(room.exits || {}),
-            background: room.background || null,
-            players: playersHere,
-            objects: objectList,
-            totalDiscoverable
+            exits:            Object.keys(room.exits || {}),
+            background:       room.background || null,
+            players:          playersHere,
+            objects:          objectList,
+            totalDiscoverable,
         };
 
         console.log("📦 ROOM PAYLOAD READY:", {
