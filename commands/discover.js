@@ -1,28 +1,32 @@
 // ===============================================
 // commands/discover.js
-// Called by client when player taps an object
-// for the first time. Persists to account.
+// Saves discoveries per room to account
 // ===============================================
 
 module.exports = {
     name: "discover",
-    help: "discover <item> — internal command, sent by client UI",
+    help: "discover <item> — internal, sent by client UI",
 
     execute(ctx, arg) {
-        const { socket, sess, accounts, sendSystem } = ctx;
+        const { socket, sess, accounts } = ctx;
 
         const acc = accounts[sess.loginId];
         if (!acc || !arg) return;
 
-        if (!Array.isArray(acc.discovered)) acc.discovered = [];
+        const itemId = arg.trim().toLowerCase();
+        const roomId = sess.room;
 
-        const id = arg.trim().toLowerCase();
-
-        if (!acc.discovered.includes(id)) {
-            acc.discovered.push(id);
-            require("../core/accounts").save();
+        // Per-room discoveries: acc.discovered = { roomId: [itemIds] }
+        if (!acc.discovered || Array.isArray(acc.discovered)) {
+            // Migrate old flat array to per-room object
+            acc.discovered = {};
         }
 
-        // No feedback needed — client already handles the UI
+        if (!acc.discovered[roomId]) acc.discovered[roomId] = [];
+
+        if (!acc.discovered[roomId].includes(itemId)) {
+            acc.discovered[roomId].push(itemId);
+            require("../core/accounts").save();
+        }
     }
 };

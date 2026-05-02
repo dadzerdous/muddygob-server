@@ -19,10 +19,19 @@ module.exports = {
 
         const itemId = acc.heldItem;
 
-        // Use room.items (same array that take.js reads from)
         if (!Array.isArray(room.items)) room.items = [];
 
-        // Drop the item back as a new instance
+        // Prevent dropping if this item type already exists in the room
+        const alreadyHere = room.items.some(i => i.defId === itemId);
+        if (alreadyHere) {
+            return sendSystem(socket,
+                acc.race === "goblin"
+                    ? "There's already one here. Even goblins know when enough is enough."
+                    : `There's already a ${itemId} here.`
+            );
+        }
+
+        // Drop into room
         room.items.push({
             id: `${itemId}_${Date.now()}`,
             defId: itemId,
@@ -33,7 +42,6 @@ module.exports = {
         require("../core/accounts").save();
 
         socket.send(JSON.stringify({ type: "held", item: null }));
-
         sendSystem(socket, `You drop the ${itemId}.`);
 
         const actor = acc?.name || "Someone";
