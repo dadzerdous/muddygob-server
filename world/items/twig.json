@@ -1,0 +1,16 @@
+{
+  "twig": {
+    "name": "Twig",
+    "emoji": "🌿",
+    "category": "tool",
+    "slot": "hand",
+    "takeable": true,
+    "throwable": false,
+    "baseActions": ["look", "take"],
+    "textByRace": {
+      "goblin": "Dry enough to burn. Maybe sharp enough to poke.",
+      "human": "A small twig.",
+      "elf": "Once part of something living."
+    }
+  }
+}
