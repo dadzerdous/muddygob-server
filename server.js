@@ -111,13 +111,13 @@ function handleJSON(socket, data) {
     switch (data.type) {
 
         case "create_account":
-            return Accounts.create(socket, sess, data, START_ROOM);
+            return Accounts.create(socket, sess, data, START_ROOM, Room.sendRoom);
 
         case "try_login":
-            return Accounts.login(socket, sess, data, START_ROOM);
+            return Accounts.login(socket, sess, data, START_ROOM, Room.sendRoom);
 
         case "resume":
-            return Accounts.resume(socket, sess, data, START_ROOM);
+            return Accounts.resume(socket, sess, data, START_ROOM, Room.sendRoom);
 
         default:
             return Sessions.sendSystem(socket, "The world does not understand that.");
