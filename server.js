@@ -111,12 +111,15 @@ function handleJSON(socket, data) {
     switch (data.type) {
 
         case "create_account":
+            console.log("[JSON] create_account", data.name);
             return Accounts.create(socket, sess, data, START_ROOM, Room.sendRoom);
 
         case "try_login":
+            console.log("[JSON] try_login", data.login);
             return Accounts.login(socket, sess, data, START_ROOM, Room.sendRoom);
 
         case "resume":
+            console.log("[JSON] resume", data.token);
             return Accounts.resume(socket, sess, data, START_ROOM, Room.sendRoom);
 
         default:
@@ -184,5 +187,3 @@ function handleText(socket, input) {
 }
 
 console.log("[SERVER] Ready.");
-
-
