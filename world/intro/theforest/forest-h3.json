@@ -3,17 +3,32 @@
     "title": "Thick Underbrush",
     "text": [
       "Dense brambles crowd the path here, tugging at your clothes.",
-      "The forest feels tighter, more watchful."
+      "The forest feels tighter, more watchful.",
+      "A cluster of thorny bushes tangles together like a wall.",
+      "Something glints faintly between the roots."
     ],
     "objects": {
       "bushes": {
         "type": "scenery",
         "emoji": "🌿",
-        "text": "Thorny bushes tangled together in a natural wall."
+        "text": "Thorny and dense. You could push through but it would cost you."
+      },
+      "roots": {
+        "type": "scenery",
+        "emoji": "🪵",
+        "text": "Thick roots knotted together. Something is wedged between them — too deep to reach."
+      },
+      "glint": {
+        "type": "scenery",
+        "emoji": "✨",
+        "text": "You reach for it. Your fingers brush something cold. But it's gone."
       }
     },
     "ambient": {
-      "rock": { "max": 1 }
+      "rock": {
+        "max": 1,
+        "roomText": "A smooth rock sits among the roots, worn by water long dried up."
+      }
     },
     "exits": {
       "north": "forest-e2",

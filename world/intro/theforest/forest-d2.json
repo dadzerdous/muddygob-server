@@ -1,17 +1,33 @@
 {
   "forest-d2": {
-    "title": "Blackness",
+    "title": "The Blackness Between Trees",
     "text": [
-      "So so so many black"
+      "So dark here the trees disappear into nothing.",
+      "The fog is thicker. Your footsteps make no sound.",
+      "There is a stone marker half-sunk in the ground.",
+      "You are not sure this place wants you here."
     ],
-
-"exits": {
-  "south": "forest-g3",
-  "east": "forest-e2"
-},
-
-
+    "objects": {
+      "marker": {
+        "type": "scenery",
+        "emoji": "🪨",
+        "text": "A flat stone driven into the earth. One side is smooth — intentionally so. Whatever was carved here has been scraped clean."
+      },
+      "fog": {
+        "type": "scenery",
+        "emoji": "🌫️",
+        "text": "You reach into it. Your hand disappears. For a moment you feel something reach back."
+      },
+      "silence": {
+        "type": "scenery",
+        "emoji": "🔇",
+        "text": "Not just quiet. Wrong. Like something removed the sound on purpose."
+      }
+    },
+    "exits": {
+      "south": "forest-g3",
+      "east": "forest-e2"
+    },
     "background": "forest-clearing.png"
   }
 }
-
