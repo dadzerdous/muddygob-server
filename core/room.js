@@ -108,7 +108,15 @@ if (room.items) {
         const def = World.items[itemInstance.defId];
         if (!def) continue;
 
-        // 2️⃣ Interactable object entry
+        // Inject roomText into description if defined
+        const roomText = itemInstance.roomText
+            || (room.ambient?.[itemInstance.defId]?.roomText)
+            || null;
+
+        if (roomText) {
+            desc.push(roomText);
+        }
+
         objectList.push({
             id: itemInstance.defId,
             name: def.name || itemInstance.defId,
@@ -128,6 +136,9 @@ if (room.items) {
     // SEND ROOM PACKET (SINGLE, GUARDED)
     // -------------------------------------------
     try {
+        // Count all discoverable objects for the counter
+        const totalDiscoverable = objectList.length;
+
         const payload = {
             type: "room",
             id,
@@ -136,7 +147,8 @@ if (room.items) {
             exits: Object.keys(room.exits || {}),
             background: room.background || null,
             players: playersHere,
-            objects: objectList
+            objects: objectList,
+            totalDiscoverable
         };
 
         console.log("📦 ROOM PAYLOAD READY:", {
