@@ -1,5 +1,5 @@
 // ===============================================
-// commands/take.js — ROOM ITEMS (FINAL, ALIGNED)
+// commands/take.js
 // ===============================================
 
 module.exports = {
@@ -13,63 +13,45 @@ module.exports = {
         const acc = accounts[sess.loginId];
         if (!acc) return;
 
-        // ---------------------------------------
-        // PARSE INPUT
-        // ---------------------------------------
         const itemName = arg?.trim()?.toLowerCase();
-        if (!itemName) {
-            return sendSystem(socket, "Take what?");
-        }
+        if (!itemName) return sendSystem(socket, "Take what?");
 
-        // ---------------------------------------
-        // HANDS CHECK
-        // ---------------------------------------
+        // Hands full check
         if (acc.heldItem) {
             return sendSystem(socket, "Your hands are already full.");
         }
 
-        // ---------------------------------------
-        // ROOM CHECK
-        // ---------------------------------------
+        // Already carrying this item type check
+        const alreadyHeld = acc.heldItem === itemName;
+        const inInventory = Array.isArray(acc.inventory) && acc.inventory.includes(itemName);
+        if (alreadyHeld || inInventory) {
+            return sendSystem(socket,
+                acc.race === "goblin"
+                    ? "You already have one. That's enough."
+                    : `You're already carrying a ${itemName}.`
+            );
+        }
+
         const room = world.rooms[sess.room];
-        if (!room) {
-            return sendSystem(socket, "This place does not exist.");
-        }
+        if (!room) return sendSystem(socket, "This place does not exist.");
+        if (!Array.isArray(room.items)) return sendSystem(socket, `There is no ${itemName} here.`);
 
-        if (!Array.isArray(room.items)) {
-            return sendSystem(socket, `There is no ${itemName} here.`);
-        }
+        // Find item in room
+        const idx = room.items.findIndex(i =>
+            i.defId === itemName ||
+            i.defId?.toLowerCase() === itemName
+        );
+        if (idx === -1) return sendSystem(socket, `There is no ${itemName} here.`);
 
-        // ---------------------------------------
-        // FIND ITEM INSTANCE
-        // ---------------------------------------
-        const idx = room.items.findIndex(i => i.defId === itemName);
-        if (idx === -1) {
-            return sendSystem(socket, `There is no ${itemName} here.`);
-        }
-
-        // ---------------------------------------
-        // REMOVE FROM ROOM
-        // ---------------------------------------
+        // Remove from room
         room.items.splice(idx, 1);
 
-// ---------------------------------------
-// PUT IN HANDS
-// ---------------------------------------
-acc.heldItem = itemName;
-require("../core/accounts").save();
+        // Put in hand
+        acc.heldItem = itemName;
+        require("../core/accounts").save();
 
-// Tell client hands changed
-socket.send(JSON.stringify({
-    type: "held",
-    item: itemName
-}));
-
-// ---------------------------------------
-// FEEDBACK + RERENDER
-// ---------------------------------------
-sendSystem(socket, `You pick up the ${itemName}.`);
-return sendRoom(socket, sess.room);
-
+        socket.send(JSON.stringify({ type: "held", item: itemName }));
+        sendSystem(socket, `You pick up the ${itemName}.`);
+        sendRoom(socket, sess.room);
     }
 };
