@@ -96,12 +96,16 @@ function sendRoom(socket, id) {
             if (seenIds.has(inst.defId)) continue;
             seenIds.add(inst.defId);
 
-            // roomDesc from ambient rule or item def
-            const roomDesc = room.ambient?.[inst.defId]?.roomText
-                || (def.roomDescByRace && race && def.roomDescByRace[race])
-                || def.roomDesc
-                || null;
-            if (roomDesc) desc.push(roomDesc);
+            const isNative = !inst.originRoom || inst.originRoom === id;
+
+            // roomDesc only for native items
+            if (isNative) {
+                const roomDesc = room.ambient?.[inst.defId]?.roomText
+                    || (def.roomDescByRace && race && def.roomDescByRace[race])
+                    || def.roomDesc
+                    || null;
+                if (roomDesc) desc.push(roomDesc);
+            }
 
             objectList.push({
                 id:         inst.defId,
@@ -109,7 +113,9 @@ function sendRoom(socket, id) {
                 type:       "item",
                 emoji:      def.emoji || "",
                 actions:    def.baseActions || ["look","take"],
-                discovered: discSet.has(inst.defId),
+                // Only count as discovered if native to this room
+                discovered: isNative ? discSet.has(inst.defId) : false,
+                native:     isNative,
                 lookText:
                     (def.textByRace && race && def.textByRace[race]) ||
                     def.text || null,
@@ -117,7 +123,10 @@ function sendRoom(socket, id) {
         }
     }
 
-    const totalDiscoverable = objectList.length;
+    // Only count native objects toward discovery total
+    const totalDiscoverable = objectList.filter(o =>
+        o.type === 'scenery' || o.native
+    ).length;
 
     try {
         const payload = {

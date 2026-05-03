@@ -14,6 +14,7 @@ function ensureAmbientItems(room) {
       room.items.push({
         id: `${itemId}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
         defId: itemId,
+        originRoom: room.id,
       });
     }
   }
