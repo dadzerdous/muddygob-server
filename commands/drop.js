@@ -32,10 +32,12 @@ module.exports = {
         }
 
         // Drop into room
+        console.log("[DROP] dropping", itemId, "into", sess.room);
         room.items.push({
             id: `${itemId}_${Date.now()}`,
             defId: itemId,
         });
+        console.log("[DROP] room.items now:", room.items.length);
 
         // Clear hands
         acc.heldItem = null;
@@ -47,6 +49,7 @@ module.exports = {
         const actor = acc?.name || "Someone";
         broadcastToRoomExcept(sess.room, `${actor} drops a ${itemId}.`, socket);
 
+        console.log("[DROP] calling sendRoom for", sess.room);
         sendRoom(socket, sess.room);
     }
 };
