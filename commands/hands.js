@@ -2,15 +2,18 @@
 module.exports = {
     name: "hands",
     execute(ctx) {
-        const { accounts, sess, sendSystem, world } = ctx;
+        const { socket, sess, accounts, world, sendSystem } = ctx;
         const acc = accounts[sess.loginId];
+        if (!acc) return;
 
-        if (!acc?.heldItem) {
-            return sendSystem(ctx.socket, "Your hands are empty.");
-        }
+        const { left, right } = acc.hands || {};
 
-        const def = world.items[acc.heldItem];
-        const emoji = def?.emoji || "";
-        sendSystem(ctx.socket, `You are holding ${emoji} ${acc.heldItem}.`);
+        const fmt = (item) => {
+            if (!item) return "empty";
+            const def = world.items[item];
+            return `${def?.emoji ?? ''} ${item}`.trim();
+        };
+
+        sendSystem(socket, `Left: ${fmt(left)} | Right: ${fmt(right)}`);
     }
 };

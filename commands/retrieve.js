@@ -1,48 +1,34 @@
 // ===============================================
-// commands/retrieve.js — INVENTORY → HANDS (CLEAN)
+// commands/retrieve.js — inventory → hand
 // ===============================================
 
 module.exports = {
     name: "retrieve",
     aliases: ["pull"],
+    help: "retrieve <item> — take item from inventory into hand",
 
-    execute(ctx, args) {
+    execute(ctx, arg) {
         const { socket, sess, accounts, sendSystem } = ctx;
+        const Accounts = require("../core/accounts");
 
         const acc = accounts[sess.loginId];
         if (!acc) return;
 
-        const itemName = (Array.isArray(args) ? args[0] : args)?.toLowerCase();
-        if (!itemName) {
-            return sendSystem(socket, "Pull what?");
+        const itemName = arg?.trim()?.toLowerCase();
+        if (!itemName) return sendSystem(socket, "Retrieve what?");
+
+        if (!Array.isArray(acc.inventory) || !acc.inventory.includes(itemName)) {
+            return sendSystem(socket, `You don't have a ${itemName} stored.`);
         }
 
-        // Hands already full
-        if (acc.heldItem) {
-            return sendSystem(socket, "Your hands are already full.");
-        }
+        const slot = Accounts.emptyHand(acc);
+        if (!slot) return sendSystem(socket, "Your hands are both full.");
 
-        // No inventory
-        if (!Array.isArray(acc.inventory) || acc.inventory.length === 0) {
-            return sendSystem(socket, "You are carrying nothing.");
-        }
+        acc.inventory = acc.inventory.filter(i => i !== itemName);
+        acc.hands[slot] = itemName;
+        Accounts.save();
 
-        // Item not in inventory
-        const idx = acc.inventory.indexOf(itemName);
-        if (idx === -1) {
-            return sendSystem(socket, `You are not carrying a ${itemName}.`);
-        }
-
-        // Move item: inventory → hands
-        acc.inventory.splice(idx, 1);
-        acc.heldItem = itemName;
-
-        // 🔔 Notify client (authoritative)
-        socket.send(JSON.stringify({
-            type: "held",
-            item: acc.heldItem
-        }));
-
-        sendSystem(socket, `You pull the ${itemName} from your pack.`);
+        socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
+        sendSystem(socket, `You pull out the ${itemName}.`);
     }
 };

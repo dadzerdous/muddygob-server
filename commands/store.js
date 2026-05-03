@@ -1,57 +1,40 @@
 // ===============================================
-// commands/store.js — HANDS → INVENTORY
+// commands/store.js — hand → inventory
 // ===============================================
 
 module.exports = {
     name: "store",
-    help: "store — put the item you are holding into your inventory",
+    help: "store <item> — put held item into inventory",
 
-    execute(ctx) {
-        const {
-            socket,
-            sess,
-            accounts,
-            sendSystem
-        } = ctx;
+    execute(ctx, arg) {
+        const { socket, sess, accounts, sendSystem } = ctx;
+        const Accounts = require("../core/accounts");
 
         const acc = accounts[sess.loginId];
         if (!acc) return;
 
-        // Nothing in hands
-        if (!acc.heldItem) {
-            return sendSystem(socket, "You are not holding anything.");
+        const itemName = arg?.trim()?.toLowerCase()
+            || acc.hands.left
+            || acc.hands.right;
+
+        if (!itemName) return sendSystem(socket, "You aren't holding anything.");
+
+        let slot = null;
+        if (acc.hands.left  === itemName) slot = 'left';
+        if (acc.hands.right === itemName) slot = 'right';
+
+        if (!slot) return sendSystem(socket, `You aren't holding a ${itemName}.`);
+
+        if (!Array.isArray(acc.inventory)) acc.inventory = [];
+        if (acc.inventory.includes(itemName)) {
+            return sendSystem(socket, `You already have a ${itemName} stored.`);
         }
 
-        // Ensure inventory exists
-        if (!Array.isArray(acc.inventory)) {
-            acc.inventory = [];
-        }
+        acc.hands[slot] = null;
+        acc.inventory.push(itemName);
+        Accounts.save();
 
-        const itemId = acc.heldItem;
-
-        // Prevent duplicates
-        if (acc.inventory.includes(itemId)) {
-            return sendSystem(socket,
-                acc.race === "goblin"
-                    ? "You already squirreled one away."
-                    : "You already have one of those stored."
-            );
-        }
-
-acc.inventory.push(itemId);
-acc.heldItem = null;
-
-socket.send(JSON.stringify({
-    type: "held",
-    item: null
-}));
-
-
-
-        sendSystem(socket,
-            acc.race === "goblin"
-                ? "You tuck it away, just in case."
-                : `You store the ${itemId}.`
-        );
+        socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
+        sendSystem(socket, `You tuck away the ${itemName}.`);
     }
 };
