@@ -127,6 +127,7 @@ if (Array.isArray(room.items)) {
         // Scenery object
         const desc =
             (target.textByRace && target.textByRace[race]) ||
+            target.lookText ||
             target.text ||
             `You see nothing special about the ${objName}.`;
 
