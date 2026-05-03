@@ -9,7 +9,8 @@
       "pond": {
         "type": "scenery",
         "emoji": "🟦",
-        "text": "A still pond with a single fish that seems to be laughing at you."
+        "roomDesc": "A still pond sits at the centre of the clearing, its surface unbroken.",
+        "lookText": "A still pond with a single fish that seems to be laughing at you."
       }
     },
     "ambient": {

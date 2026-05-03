@@ -3,30 +3,31 @@
     "title": "Mossy Trail Bend",
     "text": [
       "A narrow trail curves here, softened by deep green moss.",
-      "The air smells damp and old.",
-      "An ancient tree looms over the path, its bark folded like leather.",
-      "Somewhere above, something watches."
+      "The air smells damp and old."
     ],
     "objects": {
       "tree": {
         "type": "scenery",
         "emoji": "🌲",
-        "text": "The bark is carved with symbols too worn to read. Something has been here a long time."
+        "roomDesc": "An ancient tree looms over the path, its bark folded like leather.",
+        "lookText": "The bark is carved with symbols too worn to read. Something has been here a long time."
       },
       "symbols": {
         "type": "scenery",
         "emoji": "🔣",
-        "text": "Strange markings. Not a language you recognise. But they feel intentional."
+        "roomDesc": "Strange symbols are carved into the tree's bark, half-swallowed by moss.",
+        "lookText": "Not a language you recognise. But they feel intentional."
       },
       "moss": {
         "type": "scenery",
         "emoji": "🟩",
-        "text": "Thick and soft. You could sleep on it. Something already did — there's a faint impression."
+        "roomDesc": "Thick moss covers everything, soft enough to sleep on.",
+        "lookText": "There is a faint impression in it. Something already did sleep here."
       }
     },
     "ambient": {
       "twig": {
-        "max": 2,
+        "max": 1,
         "roomText": "A dry twig lies half-buried in the moss."
       }
     },

@@ -3,25 +3,26 @@
     "title": "The Blackness Between Trees",
     "text": [
       "So dark here the trees disappear into nothing.",
-      "The fog is thicker here, pressing close.",
-      "There is a stone marker half-sunk in the ground.",
-      "A silence hangs over this place that feels deliberate."
+      "The fog is thicker here, pressing close."
     ],
     "objects": {
       "marker": {
         "type": "scenery",
         "emoji": "🪨",
-        "text": "A flat stone driven into the earth. One side is smooth — intentionally so. Whatever was carved here has been scraped clean."
+        "roomDesc": "A stone marker sits half-sunk in the ground, older than the trees.",
+        "lookText": "One side is smooth — intentionally so. Whatever was carved here has been scraped clean."
       },
       "fog": {
         "type": "scenery",
         "emoji": "🌫️",
-        "text": "You reach into it. Your hand disappears. For a moment you feel something reach back."
+        "roomDesc": "The fog here is different — thicker, and somehow intentional.",
+        "lookText": "You reach into it. Your hand disappears. For a moment you feel something reach back."
       },
       "silence": {
         "type": "scenery",
         "emoji": "🔇",
-        "text": "Not just quiet. Wrong. Like something removed the sound on purpose."
+        "roomDesc": "A silence hangs here that feels deliberate, like something removed the sound.",
+        "lookText": "Not just quiet. Wrong. Like something removed the sound on purpose."
       }
     },
     "exits": {
