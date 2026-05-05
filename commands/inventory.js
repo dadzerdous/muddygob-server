@@ -20,7 +20,7 @@ module.exports = {
             if (!itemId) continue;
             const def   = world.items[itemId] || {};
             const emoji = def.emoji || "";
-            items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions='["look","drop","store"]'>${itemId}</span> <em>(${side} hand)</em>`);
+            items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions="look|drop|store">${itemId}</span> <em>(${side} hand)</em>`);
         }
 
         // Inventory/bag
@@ -28,7 +28,7 @@ module.exports = {
             for (const itemId of acc.inventory) {
                 const def   = world.items[itemId] || {};
                 const emoji = def.emoji || "";
-                items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions='["look","retrieve","drop"]'>${itemId}</span> <em>(bag)</em>`);
+                items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions="look|retrieve|drop">${itemId}</span> <em>(bag)</em>`);
             }
         }
 
