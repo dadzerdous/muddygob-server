@@ -14,7 +14,8 @@ module.exports = {
         const acc = accounts[sess.loginId];
         if (!acc) return;
 
-        const itemName = arg?.trim()?.toLowerCase();
+        const normalize = s => s?.toLowerCase().replace(/\s+/g, '_');
+        const itemName = normalize(arg);
         if (!itemName) return sendSystem(socket, "Retrieve what?");
 
         if (!Array.isArray(acc.inventory) || !acc.inventory.includes(itemName)) {

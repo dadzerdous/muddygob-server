@@ -14,7 +14,9 @@ module.exports = {
         const acc = accounts[sess.loginId];
         if (!acc) return;
 
-        const itemName = arg?.trim()?.toLowerCase();
+        // Normalize: "fake coin" → "fake_coin"
+        const normalize = s => s?.toLowerCase().replace(/\s+/g, '_');
+        const itemName = normalize(arg);
         if (!itemName) return sendSystem(socket, "Take what?");
 
         // Check both hands and inventory for duplicates
@@ -36,9 +38,7 @@ module.exports = {
         if (!room) return sendSystem(socket, "This place does not exist.");
         if (!Array.isArray(room.items)) return sendSystem(socket, `There is no ${itemName} here.`);
 
-        const idx = room.items.findIndex(i =>
-            i.defId === itemName || i.defId?.toLowerCase() === itemName
-        );
+        const idx = room.items.findIndex(i => normalize(i.defId) === itemName);
         if (idx === -1) return sendSystem(socket, `There is no ${itemName} here.`);
 
         // Check ownership
@@ -54,8 +54,9 @@ module.exports = {
         // Remove from room
         room.items.splice(idx, 1);
 
-        // Put in hand
-        acc.hands[slot] = itemName;
+        // Store using defId (normalized underscore form)
+        const defId = inst.defId;
+        acc.hands[slot] = defId;
         Accounts.save();
 
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));

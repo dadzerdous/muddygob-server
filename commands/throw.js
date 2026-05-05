@@ -19,9 +19,12 @@ module.exports = {
 
         if (!acc.hands) acc.hands = { left: null, right: null };
 
-        const parts  = (arg || '').trim().toLowerCase().split(' ');
-        const item   = parts[0];
-        const target = parts[1];
+        const normalize = s => s?.toLowerCase().replace(/\s+/g, '_');
+        const raw    = (arg || '').trim().toLowerCase();
+        // item may be multi-word ("fake coin"), target is last word
+        const parts  = raw.split(' ');
+        const target = parts.length > 1 ? parts[parts.length - 1] : null;
+        const item   = normalize(target ? parts.slice(0, -1).join(' ') : raw);
 
         if (!item) return sendSystem(socket, "Throw what?");
 

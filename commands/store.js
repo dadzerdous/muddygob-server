@@ -13,9 +13,8 @@ module.exports = {
         const acc = accounts[sess.loginId];
         if (!acc) return;
 
-        const itemName = arg?.trim()?.toLowerCase()
-            || acc.hands.left
-            || acc.hands.right;
+        const normalize = s => s?.toLowerCase().replace(/\s+/g, '_');
+        const itemName = normalize(arg) || acc.hands.left || acc.hands.right;
 
         if (!itemName) return sendSystem(socket, "You aren't holding anything.");
 

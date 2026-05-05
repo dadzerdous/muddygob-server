@@ -14,9 +14,8 @@ module.exports = {
         if (!acc) return;
 
         // Determine which item to drop
-        const itemName = arg?.trim()?.toLowerCase()
-            || acc.hands.left
-            || acc.hands.right;
+        const normalize = s => s?.toLowerCase().replace(/\s+/g, '_');
+        const itemName = normalize(arg) || acc.hands.left || acc.hands.right;
 
         if (!itemName) return sendSystem(socket, "You are not holding anything.");
 
