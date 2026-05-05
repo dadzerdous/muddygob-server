@@ -2,17 +2,21 @@
 // commands/throw.js
 // ===============================================
 
+const World = require("../core/world");
+
 module.exports = {
     name: "throw",
     help: "throw <item> <target>",
 
     execute(ctx, arg) {
-        const { socket, sess, accounts, world, sendSystem, sendRoom } = ctx;
-        const Accounts = require("../core/accounts");
+        const { socket, sess, accounts, sendSystem, sendRoom } = ctx;
+        const Accounts       = require("../core/accounts");
         const { checkEvent } = require("../core/events");
 
         const acc = accounts[sess.loginId];
         if (!acc) return;
+
+        if (!acc.hands) acc.hands = { left: null, right: null };
 
         const parts  = (arg || '').trim().toLowerCase().split(' ');
         const item   = parts[0];
@@ -20,11 +24,9 @@ module.exports = {
 
         if (!item) return sendSystem(socket, "Throw what?");
 
-        // Check player is holding the item
         const inHands = acc.hands.left === item || acc.hands.right === item;
         if (!inHands) return sendSystem(socket, `You aren't holding a ${item}.`);
 
-        // No target yet — ask client to prompt for one
         if (!target) {
             socket.send(JSON.stringify({
                 type:   "target_prompt",
@@ -35,16 +37,16 @@ module.exports = {
             return;
         }
 
-        // Check for event first
+        console.log("[THROW]", item, "->", target, "| room events:", !!World.rooms[sess.room]?.events);
+
         const fired = checkEvent(socket, sess, 'throw', item, target);
-        console.log("[THROW] event fired:", fired, "room events:", !!World.rooms[sess.room]?.events);
+        console.log("[THROW] event fired:", fired);
+
         if (fired) {
-            // Event handled everything — re-render room
             sendRoom(socket, sess.room);
             return;
         }
 
-        // No event — generic throw
         if (acc.hands.left  === item) acc.hands.left  = null;
         if (acc.hands.right === item) acc.hands.right = null;
         Accounts.save();
