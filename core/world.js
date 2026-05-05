@@ -110,3 +110,4 @@ if (require("fs").existsSync(RECIPES_PATH)) {
 }
 console.log("[WORLD] forest-g3 events:", JSON.stringify(World.rooms['forest-g3']?.events));
 module.exports = World;
+console.log("[WORLD] module executing from:", __filename);
