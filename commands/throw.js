@@ -9,6 +9,7 @@ module.exports = {
     help: "throw <item> <target>",
 
     execute(ctx, arg) {
+        console.log("[THROW] arg:", arg, "parts:", (arg||'').trim().toLowerCase().split(' '));
         const { socket, sess, accounts, sendSystem, sendRoom } = ctx;
         const Accounts       = require("../core/accounts");
         const { checkEvent } = require("../core/events");
