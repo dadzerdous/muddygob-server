@@ -44,8 +44,9 @@ function loadRooms(dir) {
                 for (const key of Object.keys(json)) {
                     const val = json[key];
                     if (val && (val.title || val.text)) {
-                        val.id = key;
-                        World.rooms[key] = val;
+                   val.id = key;
+World.rooms[key] = val;
+console.log("[WORLD] loaded room:", key, "| has events:", !!val.events, "| keys:", Object.keys(val));
                     } else {
                         console.log("[WORLD] Skipping non-room key:", key, "in", entry.name);
                     }
