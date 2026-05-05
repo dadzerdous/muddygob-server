@@ -12,24 +12,19 @@ module.exports = {
         const acc = accounts[sess.loginId];
         if (!acc) return;
 
-        const items = [];
-
-        // Check if carrying anything
         const { left, right } = acc.hands || {};
-        if (!left && !right && (!acc.inventory || acc.inventory.length === 0)) {
+        const bag = Array.isArray(acc.inventory) ? acc.inventory : [];
+
+        console.log("[INV] hands:", { left, right }, "bag:", bag);
+
+        if (!left && !right && bag.length === 0) {
             return sendSystem(socket, "You are carrying nothing.");
         }
 
-        if (items.length === 0) return sendSystem(socket, "You are carrying nothing.");
-
-        // Send as structured packet so client can build interactive elements
         socket.send(JSON.stringify({
-            type: "inventory",
-            hands: {
-                left:  acc.hands?.left  || null,
-                right: acc.hands?.right || null,
-            },
-            bag: Array.isArray(acc.inventory) ? acc.inventory : [],
+            type:  "inventory",
+            hands: { left: left || null, right: right || null },
+            bag,
             items: world.items,
         }));
     }
