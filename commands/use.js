@@ -34,6 +34,7 @@ module.exports = {
         if (otherItem) {
             const key1 = `${item}+${otherItem}`;
             const key2 = `${otherItem}+${item}`;
+            console.log("[USE] trying recipes:", key1, key2, "available:", Object.keys(World.recipes || {}));
             const recipe = World.recipes?.[key1] || World.recipes?.[key2];
 
             if (recipe) {
