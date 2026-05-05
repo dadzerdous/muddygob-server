@@ -24,7 +24,23 @@ module.exports = {
         if (acc.hands.left  === itemName) slot = 'left';
         if (acc.hands.right === itemName) slot = 'right';
 
+        // Check inventory if not in hands
         if (!slot) {
+            if (Array.isArray(acc.inventory) && acc.inventory.includes(itemName)) {
+                // Drop directly from inventory
+                const room = world.rooms[sess.room];
+                if (!room) return;
+                if (!Array.isArray(room.items)) room.items = [];
+                const alreadyHere = room.items.some(i => i.defId === itemName);
+                if (alreadyHere) return sendSystem(socket, `There's already a ${itemName} here.`);
+                room.items.push({ id: `${itemName}_${Date.now()}`, defId: itemName });
+                acc.inventory = acc.inventory.filter(i => i !== itemName);
+                Accounts.save();
+                sendSystem(socket, `You drop the ${itemName}.`);
+                broadcastToRoomExcept(sess.room, `${acc.name} drops a ${itemName}.`, socket);
+                sendRoom(socket, sess.room);
+                return;
+            }
             return sendSystem(socket, `You aren't holding a ${itemName}.`);
         }
 
