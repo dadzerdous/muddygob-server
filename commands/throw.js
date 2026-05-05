@@ -37,6 +37,7 @@ module.exports = {
 
         // Check for event first
         const fired = checkEvent(socket, sess, 'throw', item, target);
+        console.log("[THROW] event fired:", fired, "room events:", !!World.rooms[sess.room]?.events);
         if (fired) {
             // Event handled everything — re-render room
             sendRoom(socket, sess.room);
