@@ -39,10 +39,16 @@ function loadRooms(dir) {
             try {
                 const json = JSON.parse(fs.readFileSync(full, "utf8"));
 
-                // Each file may define one or more rooms
+                // Skip recipe files and other non-room JSON
+                // A room must have a title or text field
                 for (const key of Object.keys(json)) {
-                    json[key].id = key;
-                    World.rooms[key] = json[key];
+                    const val = json[key];
+                    if (val && (val.title || val.text)) {
+                        val.id = key;
+                        World.rooms[key] = val;
+                    } else {
+                        console.log("[WORLD] Skipping non-room key:", key, "in", entry.name);
+                    }
                 }
 
             } catch (err) {
