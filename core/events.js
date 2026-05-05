@@ -53,37 +53,31 @@ function fireOutcome(socket, sess, acc, race, outcome) {
         }
 
         case 'spawnItem': {
-            const { item, owner } = outcome;
+            const { item, owner, onGround } = outcome;
             if (!item) break;
 
-            if (owner === 'actor') {
+            const room = World.rooms[sess.room];
+            if (!room.items) room.items = [];
+
+            if (owner === 'actor' && !onGround) {
                 // Put directly in player's hands
                 const slot = Accounts.emptyHand(acc);
                 if (slot) {
                     acc.hands[slot] = item;
                     Accounts.save();
                     socket.send(JSON.stringify({ type: 'hands', hands: acc.hands }));
-                } else {
-                    // Hands full — drop in room instead
-                    const room = World.rooms[sess.room];
-                    if (!room.items) room.items = [];
-                    room.items.push({
-                        id: `${item}_${Date.now()}`,
-                        defId: item,
-                        originRoom: sess.room,
-                    });
-                    Sessions.sendSystem(socket, `Your hands are full — the ${item} falls at your feet.`);
+                    break;
                 }
-            } else {
-                // Spawn in room
-                const room = World.rooms[sess.room];
-                if (!room.items) room.items = [];
-                room.items.push({
-                    id: `${item}_${Date.now()}`,
-                    defId: item,
-                    originRoom: sess.room,
-                });
+                // Hands full — fall through to ground spawn
             }
+
+            // Spawn on ground — with owner if specified
+            room.items.push({
+                id:         `${item}_${Date.now()}`,
+                defId:      item,
+                originRoom: sess.room,
+                owner:      owner === 'actor' ? acc.name : null,
+            });
             break;
         }
 

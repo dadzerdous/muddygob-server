@@ -29,8 +29,8 @@ function loadRooms(dir) {
     for (const entry of entries) {
         const full = path.join(dir, entry.name);
 
-        // Skip items folder
-        if (entry.isDirectory() && entry.name === "items") continue;
+        // Skip items and data folders
+        if (entry.isDirectory() && ["items","data"].includes(entry.name)) continue;
 
         if (entry.isDirectory()) {
             loadRooms(full);
@@ -93,5 +93,19 @@ loadItems();
 
 console.log("[WORLD] Loaded rooms:", Object.keys(World.rooms));
 console.log("[ITEMS] Loaded items:", Object.keys(World.items));
+
+// Load recipes from world/data/recipes.json
+const RECIPES_PATH = path.join(__dirname, "../world/data/recipes.json");
+if (require("fs").existsSync(RECIPES_PATH)) {
+    try {
+        World.recipes = JSON.parse(require("fs").readFileSync(RECIPES_PATH, "utf8"));
+        console.log("[RECIPES] Loaded:", Object.keys(World.recipes).length, "recipes");
+    } catch(err) {
+        console.error("[RECIPES] Failed to load:", err);
+        World.recipes = {};
+    }
+} else {
+    World.recipes = {};
+}
 
 module.exports = World;
