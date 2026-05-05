@@ -107,5 +107,5 @@ if (require("fs").existsSync(RECIPES_PATH)) {
 } else {
     World.recipes = {};
 }
-
+console.log("[WORLD] forest-g3 events:", JSON.stringify(World.rooms['forest-g3']?.events));
 module.exports = World;
