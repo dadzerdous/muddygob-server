@@ -44,11 +44,15 @@
           {
             "do": "spawnItem",
             "item": "fake_coin",
-            "owner": "actor"
+            "owner": "actor",
+            "onGround": true
           },
           {
             "do": "removeFromHands",
             "item": "rock"
+          },
+          {
+            "do": "sendRoom"
           }
         ]
       }
