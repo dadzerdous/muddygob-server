@@ -20,8 +20,8 @@ module.exports = {
             if (!itemId) continue;
             const def     = world.items[itemId] || {};
             const emoji   = def.emoji || "";
-            const actions = JSON.stringify(["look","drop","store"]);
-            items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions='${actions}'>${itemId}</span> <em>(${side} hand)</em>`);
+            const actions = JSON.stringify(["look","drop","store"]).replace(/"/g, '&quot;');
+            items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions="${actions}">${itemId}</span> <em>(${side} hand)</em>`);
         }
 
         // Inventory/bag
@@ -29,8 +29,8 @@ module.exports = {
             for (const itemId of acc.inventory) {
                 const def     = world.items[itemId] || {};
                 const emoji   = def.emoji || "";
-                const actions = JSON.stringify(["look","retrieve","drop"]);
-                items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions='${actions}'>${itemId}</span> <em>(bag)</em>`);
+                const actions = JSON.stringify(["look","retrieve","drop"]).replace(/"/g, '&quot;');
+                items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions="${actions}">${itemId}</span> <em>(bag)</em>`);
             }
         }
 
