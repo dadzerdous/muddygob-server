@@ -18,19 +18,17 @@ module.exports = {
         const { left, right } = acc.hands || {};
         for (const [side, itemId] of [['left', left], ['right', right]]) {
             if (!itemId) continue;
-            const def     = world.items[itemId] || {};
-            const emoji   = def.emoji || "";
-            const actions = JSON.stringify(["look","drop","store"]).replace(/"/g, '&quot;');
-            items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions="${actions}">${itemId}</span> <em>(${side} hand)</em>`);
+            const def   = world.items[itemId] || {};
+            const emoji = def.emoji || "";
+            items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions="look,drop,store">${itemId}</span> <em>(${side} hand)</em>`);
         }
 
         // Inventory/bag
         if (Array.isArray(acc.inventory)) {
             for (const itemId of acc.inventory) {
-                const def     = world.items[itemId] || {};
-                const emoji   = def.emoji || "";
-                const actions = JSON.stringify(["look","retrieve","drop"]).replace(/"/g, '&quot;');
-                items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions="${actions}">${itemId}</span> <em>(bag)</em>`);
+                const def   = world.items[itemId] || {};
+                const emoji = def.emoji || "";
+                items.push(`${emoji} <span class="obj" data-name="${itemId}" data-actions="look,retrieve,drop">${itemId}</span> <em>(bag)</em>`);
             }
         }
 
