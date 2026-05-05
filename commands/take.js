@@ -41,6 +41,16 @@ module.exports = {
         );
         if (idx === -1) return sendSystem(socket, `There is no ${itemName} here.`);
 
+        // Check ownership
+        const inst = room.items[idx];
+        if (inst.owner && inst.owner !== acc.name) {
+            return sendSystem(socket,
+                acc.race === 'goblin'
+                    ? "That one's not yours. You can tell."
+                    : `That belongs to someone else.`
+            );
+        }
+
         // Remove from room
         room.items.splice(idx, 1);
 
