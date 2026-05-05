@@ -6,7 +6,12 @@
     "slot": "hand",
     "takeable": true,
     "throwable": true,
-    "baseActions": ["look", "take"],
+    "baseActions": ["look", "take", "throw", "store", "drop"],
+    "damage": [
+      { "type": "blunt", "amount": 2 },
+      { "type": "earth", "amount": 1 }
+    ],
+    "combinations": 1,
     "textByRace": {
       "goblin": "Food or weapon.",
       "human": "It's a rock.",

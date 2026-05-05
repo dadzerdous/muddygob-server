@@ -1,0 +1,19 @@
+{
+  "hatchet": {
+    "name": "Hatchet",
+    "emoji": "🪓",
+    "category": "weapon",
+    "slot": "hand",
+    "takeable": true,
+    "throwable": true,
+    "baseActions": ["look", "throw", "store", "drop"],
+    "damage": [
+      { "type": "sharp", "amount": 5 }
+    ],
+    "textByRace": {
+      "goblin": "You made this. That's terrifying and exciting.",
+      "human": "Rough but functional. A real weapon.",
+      "elf": "Crude. Effective. You feel strange holding it."
+    }
+  }
+}
