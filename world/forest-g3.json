@@ -24,6 +24,34 @@
       "east": "forest-h3"
     },
     "background": "forest-clearing.png",
-    "instance": "tutorial"
+    "instance": "tutorial",
+    "events": {
+      "throw_rock_pond": {
+        "trigger": {
+          "action": "throw",
+          "item": "rock",
+          "target": "pond"
+        },
+        "outcome": [
+          {
+            "do": "system",
+            "msgByRace": {
+              "goblin": "The rock hits the water. A fish explodes out, absolutely furious, and spits something shiny at your feet before disappearing.",
+              "human": "The rock splashes in. A fish leaps out, apparently offended, spits a coin at your feet, and vanishes.",
+              "elf": "The stone disturbs the stillness. A fish rises, indignant, deposits something at your feet with great dignity, and leaves."
+            }
+          },
+          {
+            "do": "spawnItem",
+            "item": "fake_coin",
+            "owner": "actor"
+          },
+          {
+            "do": "removeFromHands",
+            "item": "rock"
+          }
+        ]
+      }
+    }
   }
 }
