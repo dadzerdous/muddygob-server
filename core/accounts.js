@@ -10,8 +10,9 @@ if (fs.existsSync(ACCOUNT_PATH)) {
     try {
         accounts = JSON.parse(fs.readFileSync(ACCOUNT_PATH, "utf8"));
         console.log("[ACCOUNTS] Loaded", Object.keys(accounts).length, "accounts.");
-        // Migrate old heldItem to hands
+        // Migrate old accounts
         for (const acc of Object.values(accounts)) {
+            if (!acc.instancesCompleted) acc.instancesCompleted = [];
             if (!acc.hands) {
                 acc.hands = { left: acc.heldItem || null, right: null };
                 delete acc.heldItem;
@@ -50,7 +51,11 @@ function emptyHand(acc) {
 
 // ── SESSION ACTIVATION ───────────────────────────────────
 function activateSession(socket, sess, acc, loginId, startRoom, sendRoom) {
-    const room = acc.lastRoom || acc.room || startRoom;
+    // Route to tutorial if not completed, otherwise last room or start
+    const inTutorial = !acc.instancesCompleted?.includes('tutorial');
+    const room = inTutorial
+        ? (acc.lastRoom || startRoom)
+        : (acc.lastRoom || startRoom);
 
     sess.loginId = loginId;
     sess.room    = room;
@@ -98,9 +103,10 @@ function create(socket, sess, data, startRoom, sendRoom) {
         energy:     100,
         stamina:    100,
         level:      1,
-        hands:      { left: null, right: null },
-        inventory:  [],
-        discovered: {},
+        hands:              { left: null, right: null },
+        inventory:          [],
+        discovered:         {},
+        instancesCompleted: [],
     };
 
     save();

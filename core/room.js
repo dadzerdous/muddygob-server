@@ -34,6 +34,18 @@ function sendRoom(socket, id) {
         return sendRoom(socket, fallback);
     }
 
+    // Block entry to instance rooms if player doesn't belong
+    if (room.instance) {
+        const completed = acc?.instancesCompleted ?? [];
+        const inInstance = !completed.includes(room.instance);
+        if (!inInstance) {
+            Sessions.sendSystem(socket, "You have already been through this place.");
+            const fallback = Object.keys(World.rooms).find(r => !World.rooms[r].instance) ?? id;
+            sess.room = fallback;
+            return sendRoom(socket, fallback);
+        }
+    }
+
     // Spawn ambient items
     const { ensureAmbientItems } = require("./itemSpawner");
     ensureAmbientItems(room);
