@@ -1,0 +1,29 @@
+{
+  "forest-g3": {
+    "title": "Forest Clearing",
+    "text": [
+      "A quiet forest clearing filled with drifting silver fog.",
+      "A small pond reflects the faint sky between branches."
+    ],
+    "objects": {
+      "pond": {
+        "type": "scenery",
+        "emoji": "🟦",
+        "roomDesc": "A still pond sits at the centre of the clearing, its surface unbroken.",
+        "lookText": "A still pond with a single fish that seems to be laughing at you."
+      }
+    },
+    "ambient": {
+      "rock": {
+        "max": 1,
+        "roomText": "A rock sits half-buried in the mud near the water's edge."
+      }
+    },
+    "exits": {
+      "north": "forest-d2",
+      "east": "forest-h3"
+    },
+    "background": "forest-clearing.png",
+    "instance": "tutorial"
+  }
+}

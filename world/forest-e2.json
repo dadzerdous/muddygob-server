@@ -1,0 +1,41 @@
+{
+  "forest-e2": {
+    "title": "Mossy Trail Bend",
+    "text": [
+      "A narrow trail curves here, softened by deep green moss.",
+      "The air smells damp and old."
+    ],
+    "objects": {
+      "tree": {
+        "type": "scenery",
+        "emoji": "🌲",
+        "roomDesc": "An ancient tree looms over the path, its bark folded like leather.",
+        "lookText": "The bark is carved with symbols too worn to read. Something has been here a long time."
+      },
+      "symbols": {
+        "type": "scenery",
+        "emoji": "🔣",
+        "roomDesc": "Strange symbols are carved into the tree's bark, half-swallowed by moss.",
+        "lookText": "Not a language you recognise. But they feel intentional."
+      },
+      "moss": {
+        "type": "scenery",
+        "emoji": "🟩",
+        "roomDesc": "Thick moss covers everything, soft enough to sleep on.",
+        "lookText": "There is a faint impression in it. Something already did sleep here."
+      }
+    },
+    "ambient": {
+      "twig": {
+        "max": 1,
+        "roomText": "A dry twig lies half-buried in the moss."
+      }
+    },
+    "exits": {
+      "west": "forest-d2",
+      "south": "forest-h3"
+    },
+    "background": "forest-trail.png",
+    "instance": "tutorial"
+  }
+}
