@@ -1,56 +1,69 @@
 // ===============================================
-// core/room.js
+// core/room.js — AUTHORITATIVE VERSION (SAFE)
 // ===============================================
-console.log("🟣 core/room.js LOADED — v1.25 (roomDesc) 🟣");
+console.log("🟣 core/room.js LOADED — v1.23 (May 2nd) 🟣");
 
 const Sessions = require("./sessions");
-const Accounts  = require("./accounts");
-const World     = require("./world");
+const Accounts = require("./accounts");
+const World = require("./world");
 
+// -----------------------------------------------
 function oppositeDirection(dir) {
-    return { north:"south", south:"north", east:"west", west:"east" }[dir] || "somewhere";
+    return { north: "south", south: "north", east: "west", west: "east" }[dir] || "somewhere";
 }
 
+// -----------------------------------------------
 function getRoom(roomId) {
     return World.rooms[roomId];
 }
 
+// -----------------------------------------------
 function sendRoom(socket, id) {
-    const sess = Sessions.get(socket);
-    if (!sess) { console.log("❌ sendRoom: no session"); return; }
+const sess = Sessions.get(socket);
+if (!sess) {
+    console.log("❌ sendRoom: no session for socket");
+    return;
+}
 
-    console.log("[SEND ROOM]", id, "state:", sess.state);
+console.log("[SEND ROOM] requested:", id, "state:", sess.state, "loginId:", sess.loginId);
 
-    const acc  = Accounts.data[sess.loginId];
+
+    const acc = Accounts.data[sess.loginId];
     const race = acc?.race;
+
     const room = World.rooms[id];
 
+    // -------------------------------------------
+    // ROOM EXISTENCE CHECK (FIRST, ALWAYS)
+    // -------------------------------------------
     if (!room) {
-        console.error("[ROOM ERROR] Missing room:", id);
+        console.error(
+            "[ROOM ERROR] Missing room:",
+            id,
+            "Known rooms:",
+            Object.keys(World.rooms)
+        );
+
         Sessions.sendSystem(socket, "The world frays… you are pulled back.");
-        const fallback = acc?.lastRoom && World.rooms[acc.lastRoom]
-            ? acc.lastRoom : Object.keys(World.rooms)[0];
+
+        const fallback =
+            acc?.lastRoom && World.rooms[acc.lastRoom]
+                ? acc.lastRoom
+                : Object.keys(World.rooms)[0];
+
         sess.room = fallback;
         return sendRoom(socket, fallback);
     }
 
-    // Block entry to instance rooms if player doesn't belong
-    if (room.instance) {
-        const completed = acc?.instancesCompleted ?? [];
-        const inInstance = !completed.includes(room.instance);
-        if (!inInstance) {
-            Sessions.sendSystem(socket, "You have already been through this place.");
-            const fallback = Object.keys(World.rooms).find(r => !World.rooms[r].instance) ?? id;
-            sess.room = fallback;
-            return sendRoom(socket, fallback);
-        }
-    }
-
-    // Spawn ambient items
+    // -------------------------------------------
+    // ENSURE AMBIENT ITEMS
+    // -------------------------------------------
     const { ensureAmbientItems } = require("./itemSpawner");
     ensureAmbientItems(room);
 
-    // Players in room
+    // -------------------------------------------
+    // PLAYERS IN ROOM
+    // -------------------------------------------
     const playersHere = [];
     for (const [sock, s] of Sessions.sessions.entries()) {
         if (s.room === id && s.state === "ready") {
@@ -59,145 +72,151 @@ function sendRoom(socket, id) {
         }
     }
 
-    // Base description (atmospheric text only)
-    let desc = Array.isArray(room.text)
-        ? [...room.text]
+    // -------------------------------------------
+    // ROOM DESCRIPTION (BASE)
+    // -------------------------------------------
+    let desc = Array.isArray(
+        (room.textByRace && race && room.textByRace[race]) || room.text
+    )
+        ? [...((room.textByRace && race && room.textByRace[race]) || room.text)]
         : ["You see nothing special."];
 
-    // Per-player discovery set for this room
-    const playerDisc = (acc?.discovered && !Array.isArray(acc.discovered))
-        ? (acc.discovered[id] || [])
-        : [];
-    const discSet = new Set(playerDisc);
-
-    // Build object list + append each object's roomDesc to description
+    // -------------------------------------------
+    // OBJECT LIST (SCENERY + ITEMS)
+    // -------------------------------------------
     const objectList = [];
-    const seenIds    = new Set();
 
     // ---------- SCENERY ----------
     if (room.objects) {
         for (const [key, obj] of Object.entries(room.objects)) {
-            if (seenIds.has(key)) continue;
-            seenIds.add(key);
-
-            // Append this object's roomDesc to description
-            const roomDesc = (obj.roomDescByRace && race && obj.roomDescByRace[race])
-                || obj.roomDesc
-                || null;
-            if (roomDesc) desc.push(roomDesc);
-
             objectList.push({
-                id:         key,
-                name:       key,
-                type:       "scenery",
-                emoji:      obj.emoji || "",
-                actions:    obj.actions || ["look"],
-                discovered: discSet.has(key),
-                lookText:
+                name: key,
+                type: "scenery",
+                emoji: obj.emoji || "",
+                actions: obj.actions || ["look"],
+                desc:
                     (obj.textByRace && race && obj.textByRace[race]) ||
-                    obj.text || obj.lookText || null,
+                    obj.text ||
+                    null
             });
         }
     }
 
-    // ---------- AMBIENT ITEMS ----------
-    if (room.items) {
-        for (const inst of room.items) {
-            const def = World.items[inst.defId];
-            if (!def) continue;
-            if (seenIds.has(inst.defId)) continue;
-            seenIds.add(inst.defId);
+// ---------- ITEM INSTANCES ----------
+if (room.items) {
+    for (const itemInstance of room.items) {
+        const def = World.items[itemInstance.defId];
+        if (!def) continue;
 
-            const isNative = !inst.originRoom || inst.originRoom === id;
-
-            // roomDesc only for native items
-            if (isNative) {
-                const roomDesc = room.ambient?.[inst.defId]?.roomText
-                    || (def.roomDescByRace && race && def.roomDescByRace[race])
-                    || def.roomDesc
-                    || null;
-                if (roomDesc) desc.push(roomDesc);
-            }
-
-            objectList.push({
-                id:         inst.defId,
-                name:       def.name || inst.defId,
-                type:       "item",
-                emoji:      def.emoji || "",
-                actions:    def.baseActions || ["look","take"],
-                // Only count as discovered if native to this room
-                discovered: isNative ? discSet.has(inst.defId) : false,
-                native:     isNative,
-                lookText:
-                    (def.textByRace && race && def.textByRace[race]) ||
-                    def.text || null,
-            });
-        }
+        // 2️⃣ Interactable object entry
+        objectList.push({
+            id: itemInstance.defId,
+            name: def.name || itemInstance.defId,
+            type: "item",
+            emoji: def.emoji || "",
+            actions: ["look", "take"],
+            desc:
+                (def.textByRace && race && def.textByRace[race]) ||
+                def.text ||
+                "A simple item."
+        });
     }
+}
 
-    // Only count native objects toward discovery total
-    const totalDiscoverable = objectList.filter(o =>
-        o.type === 'scenery' || o.native
-    ).length;
 
+    // -------------------------------------------
+    // SEND ROOM PACKET (SINGLE, GUARDED)
+    // -------------------------------------------
     try {
         const payload = {
-            type:             "room",
+            type: "room",
             id,
-            title:            room.title || "Somewhere",
+            title: room.title || "Somewhere",
             desc,
-            exits:            Object.keys(room.exits || {}),
-            background:       room.background || null,
-            players:          playersHere,
-            objects:          objectList,
-            totalDiscoverable,
+            exits: Object.keys(room.exits || {}),
+            background: room.background || null,
+            players: playersHere,
+            objects: objectList
         };
 
-        console.log("📦 ROOM PAYLOAD:", {
-            id, title: payload.title,
-            desc: payload.desc.length,
-            objects: payload.objects.length,
+        console.log("📦 ROOM PAYLOAD READY:", {
+            id: payload.id,
+            title: payload.title,
+            descLines: Array.isArray(payload.desc) ? payload.desc.length : "not-array",
             exits: payload.exits,
+            players: payload.players?.length ?? 0,
+            objects: payload.objects?.length ?? 0
         });
 
         socket.send(JSON.stringify(payload));
-        console.log("✅ ROOM SENT:", id);
+        console.log("✅ ROOM PACKET SENT:", id);
+
     } catch (err) {
         console.error("🔥 sendRoom() failed:", err);
     }
 }
 
+// -----------------------------------------------
 function handleMove(socket, sess, cmd, arg) {
     const dir = normalizeDirection(cmd, arg);
-    if (!dir) return Sessions.sendSystem(socket, "Move where?");
-    if (sess.energy <= 0) return Sessions.sendSystem(socket, "You are too exhausted to move.");
 
+    if (!dir) return Sessions.sendSystem(socket, "Move where?");
+
+    if (sess.energy <= 0) {
+        return Sessions.sendSystem(socket, "You are too exhausted to move.");
+    }
+
+    // Drain energy
     sess.energy = Math.max(0, sess.energy - 3);
+
     const acc = Accounts.data[sess.loginId];
     acc.energy = sess.energy;
     Accounts.save();
 
-    socket.send(JSON.stringify({ type:"stats", energy:sess.energy }));
+    socket.send(JSON.stringify({
+        type: "stats",
+        energy: sess.energy
+    }));
 
     const room = getRoom(sess.room);
-    if (!room?.exits?.[dir]) return Sessions.sendSystem(socket, "You cannot go that way.");
+    if (!room?.exits?.[dir]) {
+        return Sessions.sendSystem(socket, "You cannot go that way.");
+    }
 
-    const actor  = acc?.name || "Someone";
+    const actor = acc?.name || "Someone";
     const oldRoom = sess.room;
     const newRoom = room.exits[dir];
 
     Sessions.broadcastToRoomExcept(oldRoom, `${actor} leaves ${dir}.`, socket);
-    sess.room    = newRoom;
+
+    sess.room = newRoom;
     acc.lastRoom = newRoom;
     Accounts.save();
-    Sessions.broadcastToRoomExcept(newRoom, `${actor} enters from ${oppositeDirection(dir)}.`, socket);
+
+    Sessions.broadcastToRoomExcept(
+        newRoom,
+        `${actor} enters from ${oppositeDirection(dir)}.`,
+        socket
+    );
 
     sendRoom(socket, newRoom);
 }
 
+// -----------------------------------------------
 function normalizeDirection(cmd, arg) {
-    const map = { n:"north",north:"north",s:"south",south:"south",e:"east",east:"east",w:"west",west:"west" };
+    const map = {
+        n: "north", north: "north",
+        s: "south", south: "south",
+        e: "east", east: "east",
+        w: "west", west: "west"
+    };
     return map[cmd] || map[arg] || null;
 }
 
-module.exports = { sendRoom, handleMove, oppositeDirection, getRoom };
+// -----------------------------------------------
+module.exports = {
+    sendRoom,
+    handleMove,
+    oppositeDirection,
+    getRoom
+};
