@@ -7,5 +7,59 @@
       "human": "You bind the twig to the rock with careful pressure. A rough hatchet takes shape.",
       "elf": "The materials resist at first, then yield. The result is crude but true."
     }
+  },
+  "branch+twig": {
+    "result": "shield",
+    "consumes": ["branch", "twig"],
+    "msgByRace": {
+      "goblin": "You lash the twig across the branch in a cross. It's ugly. It might stop a hit.",
+      "human": "You bind the twig around the branch into a rough frame. A crude shield.",
+      "elf": "You weave the twig through the grain of the branch. It holds better than it should."
+    }
+  },
+  "twig+branch": {
+    "result": "shield",
+    "consumes": ["twig", "branch"],
+    "msgByRace": {
+      "goblin": "You lash the twig across the branch in a cross. It's ugly. It might stop a hit.",
+      "human": "You bind the twig around the branch into a rough frame. A crude shield.",
+      "elf": "You weave the twig through the grain of the branch. It holds better than it should."
+    }
+  },
+  "rock+branch": {
+    "result": "spear",
+    "consumes": ["rock", "branch"],
+    "msgByRace": {
+      "goblin": "You wedge the rock onto the branch end and bite down on it to test. Sharp enough. Good enough.",
+      "human": "You split the branch tip and seat the rock inside it, binding it firm. A spear.",
+      "elf": "Stone and wood, joined. You feel something ancient about this. You made it anyway."
+    }
+  },
+  "branch+rock": {
+    "result": "spear",
+    "consumes": ["branch", "rock"],
+    "msgByRace": {
+      "goblin": "You wedge the rock onto the branch end and bite down on it to test. Sharp enough. Good enough.",
+      "human": "You split the branch tip and seat the rock inside it, binding it firm. A spear.",
+      "elf": "Stone and wood, joined. You feel something ancient about this. You made it anyway."
+    }
+  },
+  "shield+fake_coin": {
+    "result": "shiny_shield",
+    "consumes": ["shield", "fake_coin"],
+    "msgByRace": {
+      "goblin": "You press the coin into the wood. It catches the light. You feel powerful and stupid at the same time.",
+      "human": "You embed the coin in the face of the shield. Worthless metal, but it gleams.",
+      "elf": "A false thing pressed into a crude thing. And yet — it is beautiful. You hate that."
+    }
+  },
+  "fake_coin+shield": {
+    "result": "shiny_shield",
+    "consumes": ["fake_coin", "shield"],
+    "msgByRace": {
+      "goblin": "You press the coin into the wood. It catches the light. You feel powerful and stupid at the same time.",
+      "human": "You embed the coin in the face of the shield. Worthless metal, but it gleams.",
+      "elf": "A false thing pressed into a crude thing. And yet — it is beautiful. You hate that."
+    }
   }
 }
