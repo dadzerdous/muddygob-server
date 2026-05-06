@@ -1,0 +1,21 @@
+{
+  "branch": {
+    "name": "Branch",
+    "emoji": "🪵",
+    "category": "material",
+    "slot": "hand",
+    "takeable": true,
+    "throwable": false,
+    "baseActions": ["look", "take", "store", "drop"],
+    "damage": [
+      { "type": "blunt", "amount": 2 },
+      { "type": "nature", "amount": 1 }
+    ],
+    "combinations": 2,
+    "textByRace": {
+      "goblin": "Heavy enough to club something. Fresh enough to smell like sap.",
+      "human": "A solid branch, freshly cut.",
+      "elf": "Still warm from the tree. You feel guilty."
+    }
+  }
+}

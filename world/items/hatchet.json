@@ -7,9 +7,11 @@
     "takeable": true,
     "throwable": true,
     "baseActions": ["look", "throw", "store", "drop"],
+    "actionLabel": "chop",
     "damage": [
       { "type": "sharp", "amount": 5 }
     ],
+    "combinations": 0,
     "textByRace": {
       "goblin": "You made this. That's terrifying and exciting.",
       "human": "Rough but functional. A real weapon.",
