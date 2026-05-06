@@ -21,7 +21,7 @@
       "glint": {
         "type": "scenery",
         "emoji": "✨",
-        "roomDesc": "Something glints faintly between the roots.",
+        "roomDesc": "A faint glint catches your eye between the roots.",
         "lookText": "You reach for it. Your fingers brush something cold. But it's gone."
       }
     },
