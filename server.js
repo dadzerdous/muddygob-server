@@ -164,6 +164,13 @@ function handleText(socket, input) {
     }
 
     // --------------------------------
+    // Reset vote
+    // --------------------------------
+    if (lower === "resetvote") {
+        return Room.handleResetVote(socket, sess);
+    }
+
+    // --------------------------------
     // Commands folder
     // --------------------------------
     if (commands[lower]) {
