@@ -7,6 +7,121 @@ const Sessions = require("./sessions");
 const Accounts  = require("./accounts");
 const World     = require("./world");
 
+// ── RESET TIMERS ─────────────────────────────────────────
+const resetTimers  = {};   // roomId → setTimeout handle
+const decayTimers  = {};   // roomId → setTimeout handle
+const resetVotes   = {};   // roomId → Set of loginIds
+
+const DEFAULT_RESET_MS = 5 * 60 * 1000;   // 5 min
+const DEFAULT_DECAY_MS = 10 * 60 * 1000;  // 10 min
+
+function scheduleReset(roomId) {
+    const room = World.rooms[roomId];
+    if (!room || room.noReset) return;
+
+    const ms = (room.resetTime ?? 300) * 1000;
+
+    if (resetTimers[roomId]) clearTimeout(resetTimers[roomId]);
+    resetTimers[roomId] = setTimeout(() => {
+        // Only reset if still empty
+        const occupied = [...Sessions.sessions.values()]
+            .some(s => s.room === roomId && s.state === 'ready');
+        if (!occupied) resetRoom(roomId, null);
+    }, ms);
+}
+
+function cancelReset(roomId) {
+    if (resetTimers[roomId]) {
+        clearTimeout(resetTimers[roomId]);
+        delete resetTimers[roomId];
+    }
+    delete resetVotes[roomId];
+}
+
+function scheduleItemDecay(roomId) {
+    const room = World.rooms[roomId];
+    if (!room) return;
+    const ms = (room.itemDecayTime ?? 600) * 1000;
+
+    if (decayTimers[roomId]) clearTimeout(decayTimers[roomId]);
+    decayTimers[roomId] = setTimeout(() => {
+        if (!room.items) return;
+        const before = room.items.length;
+        room.items = room.items.filter(i => i.originRoom === roomId || !i.droppedAt);
+        if (room.items.length !== before) {
+            console.log(`[DECAY] ${roomId}: removed ${before - room.items.length} foreign items`);
+        }
+    }, ms);
+}
+
+function resetRoom(roomId, triggerSocket) {
+    const room = World.rooms[roomId];
+    if (!room) return;
+
+    console.log(`[RESET] ${roomId}`);
+
+    // Remove all non-native (foreign dropped) items
+    if (room.items) {
+        room.items = room.items.filter(i => i.originRoom === roomId);
+    }
+
+    // Re-spawn ambient items up to max
+    const { ensureAmbientItems } = require('./itemSpawner');
+    if (room.items) room.items = room.items.filter(i => !i.originRoom || i.originRoom === roomId);
+    ensureAmbientItems(room);
+
+    // Reset NPC state (future combat)
+    if (room.npcs) {
+        room.npcs.forEach(npc => { npc.state = 'idle'; });
+    }
+
+    // Notify players in room
+    const playersHere = [...Sessions.sessions.entries()]
+        .filter(([,s]) => s.room === roomId && s.state === 'ready');
+
+    playersHere.forEach(([sock, s]) => {
+        const acc  = Accounts.data[s.loginId];
+        const race = acc?.race ?? 'human';
+        const msg  = room.resetMsgByRace?.[race]
+            || room.resetMsg
+            || 'The area settles. Something has shifted.';
+        Sessions.sendSystem(sock, msg);
+        sendRoom(sock, roomId);
+    });
+
+    delete resetTimers[roomId];
+    delete resetVotes[roomId];
+}
+
+// ── RESET VOTE ────────────────────────────────────────────
+function handleResetVote(socket, sess) {
+    const roomId = sess.room;
+    const room   = World.rooms[roomId];
+    if (!room || room.noReset) return;
+
+    const playersHere = [...Sessions.sessions.entries()]
+        .filter(([,s]) => s.room === roomId && s.state === 'ready');
+
+    if (!resetVotes[roomId]) resetVotes[roomId] = new Set();
+    resetVotes[roomId].add(sess.loginId);
+
+    const voteCount   = resetVotes[roomId].size;
+    const playerCount = playersHere.length;
+
+    if (voteCount >= playerCount) {
+        // All agree — reset now
+        Sessions.broadcastToRoomExcept(roomId, 'The room resets...', socket);
+        Sessions.sendSystem(socket, 'The room resets...');
+        resetRoom(roomId, socket);
+    } else {
+        Sessions.sendSystem(socket,
+            `Reset vote: ${voteCount}/${playerCount}. Waiting for others.`);
+        Sessions.broadcastToRoomExcept(roomId,
+            `${Accounts.data[sess.loginId]?.name ?? 'Someone'} votes to reset the room (${voteCount}/${playerCount}).`,
+            socket);
+    }
+}
+
 function oppositeDirection(dir) {
     return { north:"south", south:"north", east:"west", west:"east" }[dir] || "somewhere";
 }
@@ -192,6 +307,16 @@ function handleMove(socket, sess, cmd, arg) {
     Accounts.save();
     Sessions.broadcastToRoomExcept(newRoom, `${actor} enters from ${oppositeDirection(dir)}.`, socket);
 
+    // Reset scheduling — cancel for room being entered, schedule for room being left
+    // (only schedule if no players remain)
+    const stillInOld = [...Sessions.sessions.values()]
+        .some(s => s.room === oldRoom && s.state === 'ready');
+    if (!stillInOld) scheduleReset(oldRoom);
+    cancelReset(newRoom);
+
+    // Schedule item decay for old room
+    scheduleItemDecay(oldRoom);
+
     sendRoom(socket, newRoom);
 }
 
@@ -200,4 +325,4 @@ function normalizeDirection(cmd, arg) {
     return map[cmd] || map[arg] || null;
 }
 
-module.exports = { sendRoom, handleMove, oppositeDirection, getRoom };
+module.exports = { sendRoom, handleMove, oppositeDirection, getRoom, handleResetVote, resetRoom, scheduleReset };
