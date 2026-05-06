@@ -57,8 +57,9 @@ module.exports = {
 
         // Drop into room
         room.items.push({
-            id:    `${itemName}_${Date.now()}`,
-            defId: itemName,
+            id:        `${itemName}_${Date.now()}`,
+            defId:     itemName,
+            droppedAt: Date.now(),
         });
 
         // Free hand
