@@ -6,12 +6,16 @@
     "slot": "hand",
     "takeable": true,
     "throwable": false,
-    "baseActions": ["look", "take", "store", "drop"],
+    "combinations": 1,
+    "actions": {
+      "room":      ["look", "take"],
+      "hand":      ["look", "use", "store", "drop"],
+      "inventory": ["look", "retrieve", "drop"]
+    },
     "damage": [
       { "type": "nature", "amount": 1 },
       { "type": "blunt",  "amount": 1 }
     ],
-    "combinations": 1,
     "textByRace": {
       "goblin": "Dry enough to burn. Maybe sharp enough to poke.",
       "human": "A small twig.",

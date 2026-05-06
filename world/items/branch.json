@@ -6,12 +6,16 @@
     "slot": "hand",
     "takeable": true,
     "throwable": false,
-    "baseActions": ["look", "take", "store", "drop"],
+    "combinations": 2,
+    "actions": {
+      "room":      ["look", "take"],
+      "hand":      ["look", "use", "store", "drop"],
+      "inventory": ["look", "retrieve", "drop"]
+    },
     "damage": [
       { "type": "blunt", "amount": 2 },
       { "type": "nature", "amount": 1 }
     ],
-    "combinations": 2,
     "textByRace": {
       "goblin": "Heavy enough to club something. Fresh enough to smell like sap.",
       "human": "A solid branch, freshly cut.",

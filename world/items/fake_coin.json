@@ -6,8 +6,11 @@
     "slot": "hand",
     "takeable": true,
     "throwable": true,
-    "baseActions": ["look", "take", "throw", "store"],
-    "roomDesc": "Something glints on the ground — a coin, still wet.",
+    "actions": {
+      "room":      ["look", "take"],
+      "hand":      ["look", "throw", "store", "drop"],
+      "inventory": ["look", "retrieve", "drop"]
+    },
     "textByRace": {
       "goblin": "Shiny. Probably worthless. You want it anyway.",
       "human": "A coin, but the metal is wrong. A fake.",
