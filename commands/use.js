@@ -34,7 +34,6 @@ module.exports = {
         if (otherItem) {
             const key1 = `${item}+${otherItem}`;
             const key2 = `${otherItem}+${item}`;
-            console.log("[USE] trying recipes:", key1, key2, "available:", Object.keys(World.recipes || {}));
             const recipe = World.recipes?.[key1] || World.recipes?.[key2];
 
             if (recipe) {
@@ -68,15 +67,24 @@ module.exports = {
             return;
         }
 
-        // Only one item in hands — check for room events
+        // Only one item in hands — check for room events with no target first
         const { checkEvent } = require("../core/events");
-        const fired = checkEvent(socket, sess, 'use', item, null);
-        if (fired) {
-            sendRoom(socket, sess.room);
+
+        // If arg has a target (e.g. "use hatchet tree")
+        const rawParts = (arg || '').trim().toLowerCase().split(' ');
+        const target = rawParts.length > 1 ? rawParts[rawParts.length - 1] : null;
+
+        if (target) {
+            const fired = checkEvent(socket, sess, 'use', item, target);
+            if (fired) {
+                sendRoom(socket, sess.room);
+                return;
+            }
+            sendSystem(socket, `Nothing happens.`);
             return;
         }
 
-        // No event — ask for target
+        // No target — ask for one
         socket.send(JSON.stringify({
             type:   "target_prompt",
             action: "use",
