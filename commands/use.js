@@ -17,7 +17,9 @@ module.exports = {
         if (!acc.hands) acc.hands = { left: null, right: null };
 
         const normalize = s => s?.toLowerCase().replace(/\s+/g, '_');
-        const item = normalize(arg);
+        const parts  = (arg || '').trim().toLowerCase().split(' ');
+        const item   = normalize(parts[0]);
+        const target = parts.length > 1 ? parts[parts.length - 1] : null;
 
         if (!item) return sendSystem(socket, "Use what?");
 
@@ -67,12 +69,8 @@ module.exports = {
             return;
         }
 
-        // Only one item in hands — check for room events with no target first
+        // Only one item in hands — check for room events with target
         const { checkEvent } = require("../core/events");
-
-        // If arg has a target (e.g. "use hatchet tree")
-        const rawParts = (arg || '').trim().toLowerCase().split(' ');
-        const target = rawParts.length > 1 ? rawParts[rawParts.length - 1] : null;
 
         if (target) {
             const fired = checkEvent(socket, sess, 'use', item, target);
