@@ -1,0 +1,33 @@
+{
+  "shiny_shield": {
+    "name": "Shiny Shield",
+    "emoji": "✨🛡️",
+    "category": "armor",
+    "slot": "hand",
+    "takeable": true,
+    "throwable": false,
+    "wieldable": true,
+    "combinations": 0,
+    "actions": {
+      "room":      ["look", "take"],
+      "hand":      ["look", "store", "drop"],
+      "inventory": ["look", "retrieve", "drop"]
+    },
+    "defense": [
+      { "type": "blunt", "amount": 3 },
+      { "type": "sharp", "amount": 2 }
+    ],
+    "special": {
+      "dazzle": {
+        "chance": 0.25,
+        "effect": "blind",
+        "duration": 2
+      }
+    },
+    "textByRace": {
+      "goblin": "The coin catches everything. You are the most dangerous thing in this forest and you look incredible.",
+      "human": "The false coin catches light like a real one. Enemies will see it before they see you.",
+      "elf": "Beauty from deception. You are troubled by how much you like it."
+    }
+  }
+}

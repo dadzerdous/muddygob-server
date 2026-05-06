@@ -1,0 +1,26 @@
+{
+  "spear": {
+    "name": "Spear",
+    "emoji": "🏹",
+    "category": "weapon",
+    "slot": "hand",
+    "takeable": true,
+    "throwable": true,
+    "wieldable": true,
+    "combinations": 0,
+    "actions": {
+      "room":      ["look", "take"],
+      "hand":      ["look", "use", "throw", "store", "drop"],
+      "inventory": ["look", "retrieve", "drop"]
+    },
+    "damage": [
+      { "type": "pierce", "amount": 6 },
+      { "type": "earth",  "amount": 1 }
+    ],
+    "textByRace": {
+      "goblin": "Point first. Always point first. You already know this.",
+      "human": "Balanced surprisingly well for something you made in the dark.",
+      "elf": "Stone tip, living wood. It hums faintly. You didn't expect that."
+    }
+  }
+}

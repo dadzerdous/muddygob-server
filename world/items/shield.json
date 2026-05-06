@@ -1,0 +1,26 @@
+{
+  "shield": {
+    "name": "Shield",
+    "emoji": "🛡️",
+    "category": "armor",
+    "slot": "hand",
+    "takeable": true,
+    "throwable": false,
+    "wieldable": true,
+    "combinations": 1,
+    "actions": {
+      "room":      ["look", "take"],
+      "hand":      ["look", "use", "store", "drop"],
+      "inventory": ["look", "retrieve", "drop"]
+    },
+    "defense": [
+      { "type": "blunt", "amount": 3 },
+      { "type": "sharp", "amount": 2 }
+    ],
+    "textByRace": {
+      "goblin": "Mostly sticks. But it's yours and it might work.",
+      "human": "Rough and light. Better than nothing.",
+      "elf": "Inelegant. But you built it, and it will hold."
+    }
+  }
+}
