@@ -36,6 +36,35 @@
       "south": "forest-h3"
     },
     "background": "forest-trail.png",
-    "instance": "tutorial"
+    "instance": "tutorial",
+    "events": {
+      "use_hatchet_tree": {
+        "trigger": {
+          "action": "use",
+          "item": "hatchet",
+          "target": "tree"
+        },
+        "actionLabel": "chop",
+        "outcome": [
+          {
+            "do": "system",
+            "msgByRace": {
+              "goblin": "You swing the hatchet. The tree shudders. A branch falls at your feet.",
+              "human": "You chop cleanly into the bark. A branch drops to the ground.",
+              "elf": "You hesitate, then strike. The tree loses a branch. You feel it."
+            }
+          },
+          {
+            "do": "spawnItem",
+            "item": "branch",
+            "owner": null,
+            "onGround": true
+          },
+          {
+            "do": "sendRoom"
+          }
+        ]
+      }
+    }
   }
 }
