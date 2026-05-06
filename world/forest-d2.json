@@ -30,6 +30,13 @@
       "east": "forest-e2"
     },
     "background": "forest-clearing.png",
-    "instance": "tutorial"
+    "instance": "tutorial",
+    "resetTime": 60,
+    "itemDecayTime": 300,
+    "resetMsgByRace": {
+      "goblin": "The dark swallows everything. Even you feel less certain you exist.",
+      "human": "The blackness shifts. The silence deepens.",
+      "elf": "The darkness resets itself. Something was watching. Now it is not."
+    }
   }
 }
