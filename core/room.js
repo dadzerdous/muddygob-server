@@ -216,7 +216,7 @@ function sendRoom(socket, id) {
 
             objectList.push({
                 id:         key,
-                name:       key,
+                name:       obj.name || key,   // use explicit name if set
                 type:       obj.type || "scenery",
                 emoji:      isHidden ? "" : (obj.emoji || ""),
                 actions:    isHidden ? [] : (obj.actions || ["look"]),
@@ -249,6 +249,7 @@ function sendRoom(socket, id) {
                     || def.roomDesc
                     || (def.spawnedTextByRace && race && def.spawnedTextByRace[race])
                     || def.spawnedText
+                    || def.roomText
                     || `A ${def.name || inst.defId} lies here.`;
                 desc.push(roomDesc);
             } else {
