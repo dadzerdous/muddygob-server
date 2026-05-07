@@ -8,7 +8,7 @@ module.exports = {
     help: "take <item>",
 
     execute(ctx, arg) {
-        const { socket, sess, sendSystem, sendRoom, accounts, world } = ctx;
+        const { socket, sess, sendSystem, sendRoom, broadcastToRoomExcept, accounts, world } = ctx;
         const Sessions = require('../core/sessions');
         const Accounts = require("../core/accounts");
 
@@ -62,6 +62,7 @@ module.exports = {
 
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
         sendSystem(socket, `You pick up the ${itemName}.`);
+        broadcastToRoomExcept(sess.room, `${acc.name} picks up the ${itemName}.`, socket);
         sendRoom(socket, sess.room);
         Sessions.broadcastRoomToOthers(sess.room, socket, sendRoom);
     }

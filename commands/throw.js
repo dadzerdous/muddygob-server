@@ -10,7 +10,7 @@ module.exports = {
 
     execute(ctx, arg) {
         console.log("[THROW] arg:", arg, "parts:", (arg||'').trim().toLowerCase().split(' '));
-        const { socket, sess, accounts, sendSystem, sendRoom } = ctx;
+        const { socket, sess, accounts, sendSystem, sendRoom, broadcastToRoomExcept } = ctx;
         const Sessions = require('../core/sessions');
         const Accounts       = require("../core/accounts");
         const { checkEvent } = require("../core/events");
@@ -48,6 +48,7 @@ module.exports = {
         console.log("[THROW] event fired:", fired);
 
         if (fired) {
+            broadcastToRoomExcept(sess.room, `${acc.name} throws the ${item}.`, socket);
             sendRoom(socket, sess.room);
             Sessions.broadcastRoomToOthers(sess.room, socket, sendRoom);
             return;
@@ -59,6 +60,7 @@ module.exports = {
 
         socket.send(JSON.stringify({ type: 'hands', hands: acc.hands }));
         sendSystem(socket, `You throw the ${item}. It disappears.`);
+        broadcastToRoomExcept(sess.room, `${acc.name} throws the ${item}. It disappears.`, socket);
         sendRoom(socket, sess.room);
         Sessions.broadcastRoomToOthers(sess.room, socket, sendRoom);
     }

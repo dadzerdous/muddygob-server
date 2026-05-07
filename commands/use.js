@@ -9,7 +9,7 @@ module.exports = {
     help: "use <item> — use or combine an item",
 
     execute(ctx, arg) {
-        const { socket, sess, accounts, sendSystem, sendRoom } = ctx;
+        const { socket, sess, accounts, sendSystem, sendRoom, broadcastToRoomExcept } = ctx;
         const Sessions = require('../core/sessions');
         const Accounts = require("../core/accounts");
 
