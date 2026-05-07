@@ -34,9 +34,9 @@
         "emoji": "👺",
         "roomDescHidden": null,
         "roomDescByRace": {
-          "goblin": "One of your kind crouches in the darkness, watching.",
-          "human": "Something crouches in the darkness. You can feel it watching.",
-          "elf": "A presence stirs in the dark. Low. Patient. Hungry."
+          "goblin": "One of your kind — a goblin — crouches in the darkness, watching.",
+          "human": "A goblin crouches in the darkness. You can feel it watching.",
+          "elf": "A goblin stirs in the dark. Low. Patient. Hungry."
         },
         "lookText": "It looks like trouble.",
         "lookTextByRace": {
@@ -54,7 +54,8 @@
         "xpReward": 10,
         "dropTable": [
           "note_from_goblin"
-        ]
+        ],
+        "name": "goblin"
       }
     },
     "exits": {
