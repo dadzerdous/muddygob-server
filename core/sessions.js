@@ -105,6 +105,15 @@ function broadcastToRoomExcept(roomId, msg, exceptSocket) {
 }
 
 // -----------------------------------------------
+// Send a fresh room packet to all players in a room except one socket
+function broadcastRoomToOthers(roomId, exceptSocket, sendRoomFn) {
+    for (const [sock, sess] of sessions.entries()) {
+        if (sock !== exceptSocket && sess.room === roomId && sess.state === 'ready') {
+            sendRoomFn(sock, roomId);
+        }
+    }
+}
+
 module.exports = {
     sessions,
     create,
@@ -112,6 +121,7 @@ module.exports = {
     get,
     sendSystem,
     broadcastPlayerCount,
-    broadcastToRoomExcept
+    broadcastToRoomExcept,
+    broadcastRoomToOthers
 };
 
