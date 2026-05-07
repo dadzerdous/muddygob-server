@@ -36,10 +36,10 @@
       "human": "Rough but functional. A real weapon.",
       "elf": "Crude. Effective. You feel strange holding it."
     },
-    "droppedTextByRace": {
-      "goblin": "Someone left a hatchet here. That's either very trusting or very stupid.",
-      "human": "A hatchet lies on the ground, left by someone.",
-      "elf": "A crude hatchet rests here. Someone made it and then abandoned it."
+    "spawnedTextByRace": {
+      "goblin": "A hatchet lies here. Someone made this and left it.",
+      "human": "A hatchet lies on the ground.",
+      "elf": "A crude hatchet rests here, freshly made."
     }
   }
 }

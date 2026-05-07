@@ -39,10 +39,10 @@
       "human": "A solid branch, freshly cut.",
       "elf": "Still warm from the tree. You feel guilty."
     },
-    "droppedTextByRace": {
-      "goblin": "A branch on the ground. Someone dragged it here and left.",
-      "human": "A branch lies here, dropped by a previous traveller.",
-      "elf": "A branch rests here, removed from its tree and then discarded."
+    "spawnedTextByRace": {
+      "goblin": "A fresh branch lies on the ground. Still smells like sap.",
+      "human": "A branch lies here, freshly cut.",
+      "elf": "A branch rests here, severed recently. You can still feel the loss of it."
     }
   }
 }
