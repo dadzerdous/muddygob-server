@@ -122,6 +122,15 @@ function handleResetVote(socket, sess) {
     }
 }
 
+function handleResetCancel(socket, sess) {
+    const roomId = sess.room;
+    if (resetVotes[roomId]) {
+        resetVotes[roomId].delete(sess.loginId);
+        if (resetVotes[roomId].size === 0) delete resetVotes[roomId];
+    }
+    Sessions.sendSystem(socket, 'Reset vote withdrawn.');
+}
+
 function oppositeDirection(dir) {
     return { north:"south", south:"north", east:"west", west:"east" }[dir] || "somewhere";
 }
@@ -225,13 +234,19 @@ function sendRoom(socket, id) {
 
             const isNative = !inst.originRoom || inst.originRoom === id;
 
-            // roomDesc only for native items
+            // roomDesc for native items, droppedText for foreign
             if (isNative) {
                 const roomDesc = room.ambient?.[inst.defId]?.roomText
                     || (def.roomDescByRace && race && def.roomDescByRace[race])
                     || def.roomDesc
                     || null;
                 if (roomDesc) desc.push(roomDesc);
+            } else {
+                // Foreign item dropped here — use droppedTextByRace, droppedText, or fallback
+                const droppedText = (def.droppedTextByRace && race && def.droppedTextByRace[race])
+                    || def.droppedText
+                    || `A ${def.name || inst.defId} lies here, left by someone passing through.`;
+                desc.push(droppedText);
             }
 
             objectList.push({
@@ -325,4 +340,4 @@ function normalizeDirection(cmd, arg) {
     return map[cmd] || map[arg] || null;
 }
 
-module.exports = { sendRoom, handleMove, oppositeDirection, getRoom, handleResetVote, resetRoom, scheduleReset };
+module.exports = { sendRoom, handleMove, oppositeDirection, getRoom, handleResetVote, handleResetCancel, resetRoom, scheduleReset };
