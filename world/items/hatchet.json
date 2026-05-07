@@ -40,6 +40,7 @@
       "goblin": "A hatchet lies here. Someone made this and left it.",
       "human": "A hatchet lies on the ground.",
       "elf": "A crude hatchet rests here, freshly made."
-    }
+    },
+    "roomText": "A hatchet lies here."
   }
 }

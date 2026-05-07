@@ -32,6 +32,7 @@
       "goblin": "Something shiny glints on the ground. Your stomach does a thing.",
       "human": "A coin lies on the ground, recently arrived here.",
       "elf": "Something small and metallic rests here, newly placed."
-    }
+    },
+    "roomText": "Something shiny lies here."
   }
 }

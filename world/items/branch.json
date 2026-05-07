@@ -43,6 +43,7 @@
       "goblin": "A fresh branch lies on the ground. Still smells like sap.",
       "human": "A branch lies here, freshly cut.",
       "elf": "A branch rests here, severed recently. You can still feel the loss of it."
-    }
+    },
+    "roomText": "A branch lies here."
   }
 }

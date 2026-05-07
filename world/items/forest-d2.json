@@ -1,0 +1,105 @@
+{
+  "forest-d2": {
+    "title": "The Blackness Between Trees",
+    "text": [
+      "So dark here the trees disappear into nothing.",
+      "The fog is thicker here, pressing close."
+    ],
+    "objects": {
+      "marker": {
+        "type": "scenery",
+        "emoji": "🪨",
+        "roomDesc": "A stone marker sits half-sunk in the ground, older than the trees.",
+        "lookText": "One side is smooth — intentionally so. Whatever was carved here has been scraped clean."
+      },
+      "fog": {
+        "type": "scenery",
+        "emoji": "🌫️",
+        "roomDesc": "The fog here is different — thicker, and somehow intentional.",
+        "lookText": "You reach into it. Your hand disappears. For a moment you feel something reach back. Maybe throwing something in would provoke a response.",
+        "actions": [
+          "look",
+          "throw"
+        ]
+      },
+      "silence": {
+        "type": "scenery",
+        "emoji": "🔇",
+        "roomDesc": "A silence hangs here that feels deliberate, like something removed the sound.",
+        "lookText": "Not just quiet. Wrong. Like something removed the sound on purpose."
+      },
+      "goblin": {
+        "type": "npc",
+        "state": "hidden",
+        "emoji": "👺",
+        "roomDescHidden": null,
+        "roomDescByRace": {
+          "goblin": "One of your kind — a goblin — crouches in the darkness, watching.",
+          "human": "A goblin crouches in the darkness. You can feel it watching.",
+          "elf": "A goblin stirs in the dark. Low. Patient. Hungry."
+        },
+        "lookText": "It looks like trouble.",
+        "lookTextByRace": {
+          "goblin": "Smaller than you expected. Meaner than you hoped. It sizes you up the same way you're sizing it up.",
+          "human": "A goblin. Ragged, quick-eyed, and very aware of you.",
+          "elf": "A goblin. It watches you with the focused attention of something that has decided you are interesting."
+        },
+        "actions": [
+          "look",
+          "engage"
+        ],
+        "combatant": true,
+        "hp": 15,
+        "damage": 2,
+        "xpReward": 10,
+        "dropTable": [
+          "note_from_goblin"
+        ],
+        "name": "goblin"
+      }
+    },
+    "exits": {
+      "south": "forest-g3",
+      "east": "forest-e2"
+    },
+    "background": "forest-clearing.png",
+    "instance": "tutorial",
+    "resetTime": 60,
+    "itemDecayTime": 300,
+    "resetMsgByRace": {
+      "goblin": "The dark swallows everything. Even you feel less certain you exist.",
+      "human": "The blackness shifts. The silence deepens.",
+      "elf": "The darkness resets itself. Something was watching. Now it is not."
+    },
+    "events": {
+      "throw_fake_coin_fog": {
+        "trigger": {
+          "action": "throw",
+          "item": "fake_coin",
+          "target": "fog"
+        },
+        "outcome": [
+          {
+            "do": "system",
+            "msgByRace": {
+              "goblin": "The coin vanishes into the fog. A beat of silence. Then a low sound — not animal, not quite not-animal. Something moves.",
+              "human": "The coin disappears into the black. A pause. Then something shifts in the fog. You hear breathing that isn't yours.",
+              "elf": "The coin disappears. The silence changes texture. Something that was still is no longer still."
+            }
+          },
+          {
+            "do": "revealNpc",
+            "npc": "goblin"
+          },
+          {
+            "do": "removeFromHands",
+            "item": "fake_coin"
+          },
+          {
+            "do": "sendRoom"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -43,6 +43,7 @@
       "goblin": "A dry twig on the ground. Someone dropped it. Why.",
       "human": "A twig lies here, dropped and forgotten.",
       "elf": "A twig lies here, far from any tree."
-    }
+    },
+    "roomText": "A dry twig lies here."
   }
 }

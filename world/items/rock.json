@@ -44,6 +44,7 @@
       "goblin": "A rock sits here. Someone left it. Wasteful.",
       "human": "A rock lies here, abandoned by a passing traveller.",
       "elf": "A stone rests here, separated from its place."
-    }
+    },
+    "roomText": "A rock lies here."
   }
 }
