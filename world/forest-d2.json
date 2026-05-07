@@ -55,7 +55,24 @@
         "dropTable": [
           "note_from_goblin"
         ],
-        "name": "goblin"
+        "name": "goblin",
+        "combatLookByHp": {
+          "full": {
+            "goblin": "It hasn't broken a sweat. Eyes sharp, posture low. This one knows what it's doing.",
+            "human": "It looks completely uninjured. Alert, focused. This won't be easy.",
+            "elf": "It is unhurt. Its attention is entirely on you."
+          },
+          "half": {
+            "goblin": "Dark stains on its side. Still moving though. Still mean.",
+            "human": "It's wounded but fighting through it. Blood on its flank.",
+            "elf": "It carries injury but hasn't slowed. Dangerous still."
+          },
+          "low": {
+            "goblin": "It's struggling. Breathing hard. One more good hit.",
+            "human": "It can barely hold its stance. Nearly done.",
+            "elf": "It is close to the end. It knows this. So do you."
+          }
+        }
       }
     },
     "exits": {
