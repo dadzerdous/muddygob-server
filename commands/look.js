@@ -25,6 +25,21 @@ module.exports = {
         if (!acc) return;
         const race = acc.race || "human";
 
+        // Combat look — show HP-based description if fighting this NPC
+        const Combat = require('../commands/combat');
+        const cs = Combat.getCombatSession(sess.loginId);
+        if (cs && cs.npcId === objName) {
+            const room = require('../core/world').rooms[sess.room];
+            const npc  = room?.objects?.[objName];
+            const pct  = cs.npcHp / (npc?.hp ?? 15);
+            const tier = pct > 0.66 ? 'full' : pct > 0.33 ? 'half' : 'low';
+            const desc = npc?.combatLookByHp?.[tier]?.[race]
+                || (pct > 0.66 ? `The ${objName} looks healthy.`
+                :  pct > 0.33 ? `The ${objName} looks wounded.`
+                :               `The ${objName} looks near death.`);
+            return sendSystem(socket, desc);
+        }
+
         // ---------------------------------------
         // 0) PLAYER INSPECT: look <player>
         // ---------------------------------------
