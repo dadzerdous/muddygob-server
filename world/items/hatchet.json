@@ -14,6 +14,7 @@
       ],
       "hand": [
         "look",
+        "wield",
         "chop",
         "throw",
         "store",
