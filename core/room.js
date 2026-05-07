@@ -243,11 +243,14 @@ function sendRoom(socket, id) {
 
             // roomDesc for native items, droppedText for foreign
             if (isNative) {
+                // Check ambient config first, then item def, then generate fallback
                 const roomDesc = room.ambient?.[inst.defId]?.roomText
                     || (def.roomDescByRace && race && def.roomDescByRace[race])
                     || def.roomDesc
-                    || null;
-                if (roomDesc) desc.push(roomDesc);
+                    || (def.spawnedTextByRace && race && def.spawnedTextByRace[race])
+                    || def.spawnedText
+                    || `A ${def.name || inst.defId} lies here.`;
+                desc.push(roomDesc);
             } else {
                 // Foreign item dropped here — use droppedTextByRace, droppedText, or fallback
                 const droppedText = (def.droppedTextByRace && race && def.droppedTextByRace[race])
@@ -272,9 +275,9 @@ function sendRoom(socket, id) {
         }
     }
 
-    // Only count native objects toward discovery total
+    // Only count native objects toward discovery total (scenery, native items, NPCs)
     const totalDiscoverable = objectList.filter(o =>
-        o.type === 'scenery' || o.native
+        o.type === 'scenery' || o.type === 'npc' || o.native
     ).length;
 
     // Build combatants list — visible NPCs with combatant:true
