@@ -6,6 +6,28 @@ const World    = require('../core/world');
 const Accounts = require('../core/accounts');
 const Sessions = require('../core/sessions');
 
+// ── DICE ─────────────────────────────────────────────────
+function roll(sides) { return Math.floor(Math.random() * sides) + 1; }
+
+function rollDamage(def) {
+    if (!def?.damage?.length) return def?.baseDamage ?? 1;
+    // Roll each damage component and sum
+    return def.damage.reduce((total, d) => {
+        const sides = d.amount ?? 1;
+        return total + roll(sides);
+    }, 0);
+}
+
+function rollNpcDamage(npc) {
+    const base = npc?.damage ?? 2;
+    // Npc does base ± 1 variance
+    return Math.max(1, base + roll(3) - 2); // -1, 0, or +1
+}
+
+function hitRoll(missChance = 0.15) {
+    return Math.random() > missChance;
+}
+
 // ── COMBAT STATE ─────────────────────────────────────────
 // combatSessions[loginId] = { stage, roomId, npcId, npcHp, playerHp }
 const combatSessions = {};
@@ -18,6 +40,10 @@ const STAGE = { NOTICE: 'notice', APPROACH: 'approach', MELEE: 'melee' };
 
 // ── ENGAGE ───────────────────────────────────────────────
 function startCombat(socket, sess, npcId) {
+    // Don't restart if already in combat with this NPC
+    const existing = combatSessions[sess.loginId];
+    if (existing && existing.npcId === npcId) return;
+
     const acc    = Accounts.data[sess.loginId];
     const room   = World.rooms[sess.room];
     const npc    = room?.objects?.[npcId];
@@ -94,14 +120,26 @@ function startNpcAttackLoop(socket, sess, npcId) {
             return;
         }
 
-        const dmg = npc?.damage ?? 2;
-        cs.playerHp = Math.max(0, cs.playerHp - dmg);
-        sess.hp = cs.playerHp;
-
         const acc  = Accounts.data[sess.loginId];
         const race = acc?.race ?? 'human';
+
+        // NPC miss chance
+        if (!hitRoll(0.2)) {
+            const missMsg = {
+                goblin: { goblin: "It lunges — you sidestep.", human: "It swings wide. Lucky.", elf: "Its strike finds nothing." }
+            }[npcId]?.[race] ?? `The ${npcId} misses.`;
+            Sessions.sendSystem(socket, missMsg);
+            sendCombatState(socket, sess.loginId);
+            return;
+        }
+
+        const dmg = rollNpcDamage(npc);
+        cs.playerHp = Math.max(0, cs.playerHp - dmg);
+        sess.hp = cs.playerHp;
+        socket.send(JSON.stringify({ type: 'stats', hp: cs.playerHp }));
+
         const hitMsg = {
-            goblin: { goblin: `It hits you for ${dmg}. You barely feel it. (${cs.playerHp} hp)`, human: `It strikes! ${dmg} damage. (${cs.playerHp} hp)`, elf: `It finds a gap. ${dmg} damage. (${cs.playerHp} hp)` }
+            goblin: { goblin: `It hits you for ${dmg}. (${cs.playerHp} hp)`, human: `It strikes for ${dmg} damage. (${cs.playerHp} hp)`, elf: `It finds a gap. ${dmg} damage. (${cs.playerHp} hp)` }
         }[npcId]?.[race] ?? `The ${npcId} hits you for ${dmg}. (${cs.playerHp} hp)`;
 
         Sessions.sendSystem(socket, hitMsg);
@@ -125,17 +163,32 @@ function playerAttack(socket, sess, weaponId) {
     const acc    = Accounts.data[sess.loginId];
     const race   = acc?.race ?? 'human';
     const def    = World.items[weaponId];
-    const dmg    = def?.baseDamage ?? 1;
     const room   = World.rooms[sess.room];
     const npc    = room?.objects?.[cs.npcId];
 
-    cs.npcHp = Math.max(0, cs.npcHp - dmg);
+    // Roll to hit
+    if (!hitRoll(0.15)) {
+        const missMsg = {
+            goblin: "You swing. It ducks. Nothing lands.",
+            human:  "You strike — but miss.",
+            elf:    "Your blow finds no mark."
+        }[race] ?? "You miss.";
+        Sessions.sendSystem(socket, missMsg);
+        sendCombatState(socket, sess.loginId);
+        return;
+    }
 
+    // Roll damage from item definition
+    const dmg = rollDamage(def);
+    cs.npcHp  = Math.max(0, cs.npcHp - dmg);
+
+    // Build hit message with damage types
+    const dmgTypes = def?.damage?.map(d => d.type).join('+') ?? 'physical';
     const hitMsg = {
-        goblin: `You strike with the ${weaponId} for ${dmg}. (${cs.npcHp} hp left)`,
-        human:  `You hit the ${cs.npcId} for ${dmg} damage. (${cs.npcHp} hp left)`,
-        elf:    `You connect. ${dmg} damage. The ${cs.npcId} has ${cs.npcHp} hp left.`
-    }[race] ?? `You deal ${dmg} damage. (${cs.npcHp} hp)`;
+        goblin: `You hit for ${dmg} ${dmgTypes} damage.`,
+        human:  `You strike the ${cs.npcId} for ${dmg} ${dmgTypes} damage.`,
+        elf:    `${dmg} ${dmgTypes} damage. Clean.`
+    }[race] ?? `${dmg} ${dmgTypes} damage.`;
 
     Sessions.sendSystem(socket, hitMsg);
 
