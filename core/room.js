@@ -198,26 +198,33 @@ function sendRoom(socket, id) {
     const objectList = [];
     const seenIds    = new Set();
 
-    // ---------- SCENERY ----------
+    // ---------- SCENERY + NPCs ----------
     if (room.objects) {
         for (const [key, obj] of Object.entries(room.objects)) {
             if (seenIds.has(key)) continue;
             seenIds.add(key);
 
-            // Append this object's roomDesc to description
-            const roomDesc = (obj.roomDescByRace && race && obj.roomDescByRace[race])
-                || obj.roomDesc
-                || null;
-            if (roomDesc) desc.push(roomDesc);
+            const isHidden = obj.state === 'hidden';
+
+            // Hidden NPCs count toward total but don't inject roomDesc
+            if (!isHidden) {
+                const roomDesc = (obj.roomDescByRace && race && obj.roomDescByRace[race])
+                    || obj.roomDesc
+                    || null;
+                if (roomDesc) desc.push(roomDesc);
+            }
 
             objectList.push({
                 id:         key,
                 name:       key,
-                type:       "scenery",
-                emoji:      obj.emoji || "",
-                actions:    obj.actions || ["look"],
+                type:       obj.type || "scenery",
+                emoji:      isHidden ? "" : (obj.emoji || ""),
+                actions:    isHidden ? [] : (obj.actions || ["look"]),
                 discovered: discSet.has(key),
+                hidden:     isHidden,
+                combatant:  obj.combatant || false,
                 lookText:
+                    (obj.lookTextByRace && race && obj.lookTextByRace[race]) ||
                     (obj.textByRace && race && obj.textByRace[race]) ||
                     obj.text || obj.lookText || null,
             });

@@ -105,6 +105,16 @@ function fireOutcome(socket, sess, acc, race, outcome) {
             break;
         }
 
+        case 'revealNpc': {
+            const { npc } = outcome;
+            if (!npc) break;
+            const room = World.rooms[sess.room];
+            if (!room?.objects?.[npc]) break;
+            room.objects[npc].state = 'visible';
+            console.log('[EVENT] revealed NPC:', npc);
+            break;
+        }
+
         case 'completeInstance': {
             if (!Array.isArray(acc.instancesCompleted)) acc.instancesCompleted = [];
             if (!acc.instancesCompleted.includes(outcome.instance)) {
