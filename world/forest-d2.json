@@ -16,7 +16,11 @@
         "type": "scenery",
         "emoji": "🌫️",
         "roomDesc": "The fog here is different — thicker, and somehow intentional.",
-        "lookText": "You reach into it. Your hand disappears. For a moment you feel something reach back."
+        "lookText": "You reach into it. Your hand disappears. For a moment you feel something reach back. Maybe throwing something in would provoke a response.",
+        "actions": [
+          "look",
+          "throw"
+        ]
       },
       "silence": {
         "type": "scenery",
@@ -67,18 +71,18 @@
       "elf": "The darkness resets itself. Something was watching. Now it is not."
     },
     "events": {
-      "throw_fake_coin_darkness": {
+      "throw_fake_coin_fog": {
         "trigger": {
           "action": "throw",
           "item": "fake_coin",
-          "target": "darkness"
+          "target": "fog"
         },
         "outcome": [
           {
             "do": "system",
             "msgByRace": {
-              "goblin": "The coin hits something in the dark. A beat of silence. Then a low sound — not animal, not quite not-animal. Something moves.",
-              "human": "The coin vanishes into the black. A pause. Then something shifts in the darkness. You hear breathing that isn't yours.",
+              "goblin": "The coin vanishes into the fog. A beat of silence. Then a low sound — not animal, not quite not-animal. Something moves.",
+              "human": "The coin disappears into the black. A pause. Then something shifts in the fog. You hear breathing that isn't yours.",
               "elf": "The coin disappears. The silence changes texture. Something that was still is no longer still."
             }
           },
