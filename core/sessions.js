@@ -34,8 +34,9 @@ function regenTick() {
 
             sock.send(JSON.stringify({
                 type: "stats",
-                energy: sess.energy,
-                stamina: sess.stamina
+                energy:  sess.energy,
+                stamina: sess.stamina,
+                hp:      sess.hp ?? 100,
             }));
         }
     }
