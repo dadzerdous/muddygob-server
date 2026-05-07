@@ -8,6 +8,7 @@ module.exports = {
 
     execute(ctx, arg) {
         const { socket, sess, accounts, world, sendSystem, sendRoom, broadcastToRoomExcept } = ctx;
+        const Sessions = require('../core/sessions');
         const Accounts = require("../core/accounts");
 
         const acc = accounts[sess.loginId];
@@ -57,9 +58,8 @@ module.exports = {
 
         // Drop into room
         room.items.push({
-            id:        `${itemName}_${Date.now()}`,
-            defId:     itemName,
-            droppedAt: Date.now(),
+            id:    `${itemName}_${Date.now()}`,
+            defId: itemName,
         });
 
         // Free hand

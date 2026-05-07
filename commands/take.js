@@ -9,6 +9,7 @@ module.exports = {
 
     execute(ctx, arg) {
         const { socket, sess, sendSystem, sendRoom, accounts, world } = ctx;
+        const Sessions = require('../core/sessions');
         const Accounts = require("../core/accounts");
 
         const acc = accounts[sess.loginId];
@@ -62,5 +63,6 @@ module.exports = {
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
         sendSystem(socket, `You pick up the ${itemName}.`);
         sendRoom(socket, sess.room);
+        Sessions.broadcastRoomToOthers(sess.room, socket, sendRoom);
     }
 };

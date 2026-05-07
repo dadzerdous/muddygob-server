@@ -10,6 +10,7 @@ module.exports = {
 
     execute(ctx, arg) {
         const { socket, sess, accounts, sendSystem, sendRoom } = ctx;
+        const Sessions = require('../core/sessions');
         const Accounts = require("../core/accounts");
 
         const acc = accounts[sess.loginId];
