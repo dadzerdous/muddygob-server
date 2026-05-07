@@ -277,6 +277,11 @@ function sendRoom(socket, id) {
         o.type === 'scenery' || o.native
     ).length;
 
+    // Build combatants list — visible NPCs with combatant:true
+    const combatants = objectList.filter(o =>
+        o.type === 'npc' && o.combatant && !o.hidden
+    ).map(o => ({ id: o.id, name: o.name }));
+
     try {
         const payload = {
             type:             "room",
@@ -288,6 +293,7 @@ function sendRoom(socket, id) {
             players:          playersHere,
             objects:          objectList,
             totalDiscoverable,
+            combatants,
         };
 
         console.log("📦 ROOM PAYLOAD:", {
