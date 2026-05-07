@@ -8,18 +8,42 @@
     "throwable": true,
     "combinations": 1,
     "actions": {
-      "room":      ["look", "take"],
-      "hand":      ["look", "use", "throw", "store", "drop"],
-      "inventory": ["look", "retrieve", "drop"]
+      "room": [
+        "look",
+        "take"
+      ],
+      "hand": [
+        "look",
+        "use",
+        "throw",
+        "store",
+        "drop"
+      ],
+      "inventory": [
+        "look",
+        "retrieve",
+        "drop"
+      ]
     },
     "damage": [
-      { "type": "blunt", "amount": 2 },
-      { "type": "earth", "amount": 1 }
+      {
+        "type": "blunt",
+        "amount": 2
+      },
+      {
+        "type": "earth",
+        "amount": 1
+      }
     ],
     "textByRace": {
       "goblin": "Food or weapon.",
       "human": "It's a rock.",
       "elf": "It hums faintly."
+    },
+    "droppedTextByRace": {
+      "goblin": "A rock sits here. Someone left it. Wasteful.",
+      "human": "A rock lies here, abandoned by a passing traveller.",
+      "elf": "A stone rests here, separated from its place."
     }
   }
 }

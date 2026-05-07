@@ -8,17 +8,38 @@
     "throwable": true,
     "actionLabel": "chop",
     "actions": {
-      "room":      ["look", "take"],
-      "hand":      ["look", "chop", "throw", "store", "drop"],
-      "inventory": ["look", "retrieve", "drop"]
+      "room": [
+        "look",
+        "take"
+      ],
+      "hand": [
+        "look",
+        "chop",
+        "throw",
+        "store",
+        "drop"
+      ],
+      "inventory": [
+        "look",
+        "retrieve",
+        "drop"
+      ]
     },
     "damage": [
-      { "type": "sharp", "amount": 5 }
+      {
+        "type": "sharp",
+        "amount": 5
+      }
     ],
     "textByRace": {
       "goblin": "You made this. That's terrifying and exciting.",
       "human": "Rough but functional. A real weapon.",
       "elf": "Crude. Effective. You feel strange holding it."
+    },
+    "droppedTextByRace": {
+      "goblin": "Someone left a hatchet here. That's either very trusting or very stupid.",
+      "human": "A hatchet lies on the ground, left by someone.",
+      "elf": "A crude hatchet rests here. Someone made it and then abandoned it."
     }
   }
 }

@@ -8,18 +8,41 @@
     "throwable": false,
     "combinations": 2,
     "actions": {
-      "room":      ["look", "take"],
-      "hand":      ["look", "use", "store", "drop"],
-      "inventory": ["look", "retrieve", "drop"]
+      "room": [
+        "look",
+        "take"
+      ],
+      "hand": [
+        "look",
+        "use",
+        "store",
+        "drop"
+      ],
+      "inventory": [
+        "look",
+        "retrieve",
+        "drop"
+      ]
     },
     "damage": [
-      { "type": "blunt", "amount": 2 },
-      { "type": "nature", "amount": 1 }
+      {
+        "type": "blunt",
+        "amount": 2
+      },
+      {
+        "type": "nature",
+        "amount": 1
+      }
     ],
     "textByRace": {
       "goblin": "Heavy enough to club something. Fresh enough to smell like sap.",
       "human": "A solid branch, freshly cut.",
       "elf": "Still warm from the tree. You feel guilty."
+    },
+    "droppedTextByRace": {
+      "goblin": "A branch on the ground. Someone dragged it here and left.",
+      "human": "A branch lies here, dropped by a previous traveller.",
+      "elf": "A branch rests here, removed from its tree and then discarded."
     }
   }
 }

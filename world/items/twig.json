@@ -8,18 +8,41 @@
     "throwable": false,
     "combinations": 1,
     "actions": {
-      "room":      ["look", "take"],
-      "hand":      ["look", "use", "store", "drop"],
-      "inventory": ["look", "retrieve", "drop"]
+      "room": [
+        "look",
+        "take"
+      ],
+      "hand": [
+        "look",
+        "use",
+        "store",
+        "drop"
+      ],
+      "inventory": [
+        "look",
+        "retrieve",
+        "drop"
+      ]
     },
     "damage": [
-      { "type": "nature", "amount": 1 },
-      { "type": "blunt",  "amount": 1 }
+      {
+        "type": "nature",
+        "amount": 1
+      },
+      {
+        "type": "blunt",
+        "amount": 1
+      }
     ],
     "textByRace": {
       "goblin": "Dry enough to burn. Maybe sharp enough to poke.",
       "human": "A small twig.",
       "elf": "Once part of something living."
+    },
+    "droppedTextByRace": {
+      "goblin": "A dry twig on the ground. Someone dropped it. Why.",
+      "human": "A twig lies here, dropped and forgotten.",
+      "elf": "A twig lies here, far from any tree."
     }
   }
 }
