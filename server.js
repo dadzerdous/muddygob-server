@@ -164,10 +164,25 @@ function handleText(socket, input) {
     }
 
     // --------------------------------
-    // Reset vote
+    // Reset vote / cancel
     // --------------------------------
-    if (lower === "resetvote") {
-        return Room.handleResetVote(socket, sess);
+    if (lower === "resetvote")   return Room.handleResetVote(socket, sess);
+    if (lower === "resetcancel") return Room.handleResetCancel(socket, sess);
+
+    // --------------------------------
+    // Combat
+    // --------------------------------
+    const Combat = require('./commands/combat');
+    if (lower === "engage") {
+        return Combat.startCombat(socket, sess, arg || 'goblin');
+    }
+    if (lower === "attack") {
+        const acc = Accounts.data[sess.loginId];
+        const weaponId = arg?.trim().toLowerCase() || acc?.hands?.left || acc?.hands?.right;
+        return Combat.playerAttack(socket, sess, weaponId);
+    }
+    if (lower === "retreat" || lower === "flee") {
+        return Combat.retreat(socket, sess);
     }
 
     // --------------------------------
@@ -179,6 +194,7 @@ function handleText(socket, input) {
             sess,
             accounts: Accounts.data,
             world: World,
+            cmdName: lower,
 
             sendRoom: Room.sendRoom,
             sendSystem: Sessions.sendSystem,
