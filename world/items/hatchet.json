@@ -36,11 +36,8 @@
       "human": "Rough but functional. A real weapon.",
       "elf": "Crude. Effective. You feel strange holding it."
     },
-    "spawnedTextByRace": {
-      "goblin": "A hatchet lies here. Someone made this and left it.",
-      "human": "A hatchet lies on the ground.",
-      "elf": "A crude hatchet rests here, freshly made."
-    },
-    "roomText": "A hatchet lies here."
+    "atbSpeed": 2500,
+    "baseDamage": 5,
+    "wieldable": true
   }
 }
