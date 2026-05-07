@@ -23,6 +23,34 @@
         "emoji": "🔇",
         "roomDesc": "A silence hangs here that feels deliberate, like something removed the sound.",
         "lookText": "Not just quiet. Wrong. Like something removed the sound on purpose."
+      },
+      "goblin": {
+        "type": "npc",
+        "state": "hidden",
+        "emoji": "👺",
+        "roomDescHidden": null,
+        "roomDescByRace": {
+          "goblin": "One of your kind crouches in the darkness, watching.",
+          "human": "Something crouches in the darkness. You can feel it watching.",
+          "elf": "A presence stirs in the dark. Low. Patient. Hungry."
+        },
+        "lookText": "It looks like trouble.",
+        "lookTextByRace": {
+          "goblin": "Smaller than you expected. Meaner than you hoped. It sizes you up the same way you're sizing it up.",
+          "human": "A goblin. Ragged, quick-eyed, and very aware of you.",
+          "elf": "A goblin. It watches you with the focused attention of something that has decided you are interesting."
+        },
+        "actions": [
+          "look",
+          "engage"
+        ],
+        "combatant": true,
+        "hp": 15,
+        "damage": 2,
+        "xpReward": 10,
+        "dropTable": [
+          "note_from_goblin"
+        ]
       }
     },
     "exits": {
@@ -37,6 +65,36 @@
       "goblin": "The dark swallows everything. Even you feel less certain you exist.",
       "human": "The blackness shifts. The silence deepens.",
       "elf": "The darkness resets itself. Something was watching. Now it is not."
+    },
+    "events": {
+      "throw_fake_coin_darkness": {
+        "trigger": {
+          "action": "throw",
+          "item": "fake_coin",
+          "target": "darkness"
+        },
+        "outcome": [
+          {
+            "do": "system",
+            "msgByRace": {
+              "goblin": "The coin hits something in the dark. A beat of silence. Then a low sound — not animal, not quite not-animal. Something moves.",
+              "human": "The coin vanishes into the black. A pause. Then something shifts in the darkness. You hear breathing that isn't yours.",
+              "elf": "The coin disappears. The silence changes texture. Something that was still is no longer still."
+            }
+          },
+          {
+            "do": "revealNpc",
+            "npc": "goblin"
+          },
+          {
+            "do": "removeFromHands",
+            "item": "fake_coin"
+          },
+          {
+            "do": "sendRoom"
+          }
+        ]
+      }
     }
   }
 }
