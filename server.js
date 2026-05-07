@@ -170,6 +170,30 @@ function handleText(socket, input) {
     if (lower === "resetcancel") return Room.handleResetCancel(socket, sess);
 
     // --------------------------------
+    // Wield / unwield
+    // --------------------------------
+    if (lower === "wield") {
+        const acc = Accounts.data[sess.loginId];
+        if (!acc) return;
+        const itemId = arg?.trim().toLowerCase();
+        if (!itemId) return Sessions.sendSystem(socket, "Wield what?");
+        const inHands = acc.hands.left === itemId || acc.hands.right === itemId;
+        if (!inHands) return Sessions.sendSystem(socket, `You aren't holding a ${itemId}.`);
+        if (!sess.wielding) sess.wielding = {};
+        sess.wielding[itemId] = true;
+        socket.send(JSON.stringify({ type: 'wielding', wielding: sess.wielding }));
+        Sessions.sendSystem(socket, `You wield the ${itemId}.`);
+        return;
+    }
+    if (lower === "unwield") {
+        const itemId = arg?.trim().toLowerCase();
+        if (sess.wielding) delete sess.wielding[itemId];
+        socket.send(JSON.stringify({ type: 'wielding', wielding: sess.wielding || {} }));
+        Sessions.sendSystem(socket, `You lower the ${itemId}.`);
+        return;
+    }
+
+    // --------------------------------
     // Combat
     // --------------------------------
     const Combat = require('./commands/combat');
