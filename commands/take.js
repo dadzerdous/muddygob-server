@@ -8,8 +8,7 @@ module.exports = {
     help: "take <item>",
 
     execute(ctx, arg) {
-        const { socket, sess, sendSystem, sendRoom, broadcastToRoomExcept, accounts, world } = ctx;
-        const Sessions = require('../core/sessions');
+        const { socket, sess, sendSystem, sendRoom, accounts, world } = ctx;
         const Accounts = require("../core/accounts");
 
         const acc = accounts[sess.loginId];
@@ -18,6 +17,9 @@ module.exports = {
         // Normalize: "fake coin" → "fake_coin"
         const normalize = s => s?.toLowerCase().replace(/\s+/g, '_');
         const itemName = normalize(arg);
+        const Combat = require('../commands/combat');
+        if (!Combat.requireIdle(sess, socket, 'take')) return;
+
         if (!itemName) return sendSystem(socket, "Take what?");
 
         // Check both hands and inventory for duplicates
@@ -62,8 +64,6 @@ module.exports = {
 
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
         sendSystem(socket, `You pick up the ${itemName}.`);
-        broadcastToRoomExcept(sess.room, `${acc.name} picks up the ${itemName}.`, socket);
         sendRoom(socket, sess.room);
-        Sessions.broadcastRoomToOthers(sess.room, socket, sendRoom);
     }
 };

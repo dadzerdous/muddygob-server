@@ -8,8 +8,10 @@ module.exports = {
 
     execute(ctx, arg) {
         const { socket, sess, accounts, world, sendSystem, sendRoom, broadcastToRoomExcept } = ctx;
-        const Sessions = require('../core/sessions');
         const Accounts = require("../core/accounts");
+
+        const Combat = require('../commands/combat');
+        if (!Combat.requireIdle(sess, socket, 'drop')) return;
 
         const acc = accounts[sess.loginId];
         if (!acc) return;
