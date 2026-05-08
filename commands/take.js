@@ -17,8 +17,10 @@ module.exports = {
         // Normalize: "fake coin" → "fake_coin"
         const normalize = s => s?.toLowerCase().replace(/\s+/g, '_');
         const itemName = normalize(arg);
-        const Combat = require('../commands/combat');
-        if (!Combat.requireIdle(sess, socket, 'take')) return;
+        try {
+            const Combat = require('../commands/combat');
+            if (Combat.requireIdle && !Combat.requireIdle(sess, socket, 'take')) return;
+        } catch(e) {}
 
         if (!itemName) return sendSystem(socket, "Take what?");
 

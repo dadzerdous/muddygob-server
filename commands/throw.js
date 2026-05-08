@@ -26,8 +26,10 @@ module.exports = {
         const target = parts.length > 1 ? parts[parts.length - 1] : null;
         const item   = normalize(target ? parts.slice(0, -1).join(' ') : raw);
 
-        const Combat = require('../commands/combat');
-        if (!Combat.requireIdle(sess, socket, 'throw')) return;
+        try {
+            const Combat = require('../commands/combat');
+            if (Combat.requireIdle && !Combat.requireIdle(sess, socket, 'throw')) return;
+        } catch(e) {}
 
         if (!item) return sendSystem(socket, "Throw what?");
 
