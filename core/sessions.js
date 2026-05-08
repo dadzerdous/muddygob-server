@@ -49,12 +49,14 @@ setInterval(regenTick, 3000);
 // -----------------------------------------------
 function create(socket, startRoom) {
     sessions.set(socket, {
-        state: "connected",
-        loginId: null,
-        room: startRoom,
-        hp: 100,
-        energy: 100,
-        stamina: 100
+        state:       "connected",
+        loginId:     null,
+        room:        startRoom,
+        hp:          100,
+        energy:      100,
+        stamina:     100,
+        wielding:    {},
+        combatState: { stage: 'idle', npcId: null, npcHp: null, playerHp: null, roomId: null },
     });
 }
 
