@@ -84,6 +84,16 @@ function push(socket, sess) {
 }
 
 // ── GUARD — blocks actions mid-combat ────────────────────
+function getNpcDef(room, npcId) {
+    const obj = room?.objects?.[npcId];
+    if (!obj) return null;
+    if (obj.npcRef) {
+        const def = World.npcs?.[obj.npcRef];
+        return def ? { ...def, ...obj } : obj;
+    }
+    return obj;
+}
+
 function requireIdle(sess, socket, action) {
     const stage = sess.combatState?.stage;
     if (!stage || stage === STAGE.IDLE) return true;
@@ -103,7 +113,7 @@ function startCombat(socket, sess, npcId) {
     if (cs?.npcId === npcId && cs?.stage !== STAGE.IDLE) return;
 
     const room = World.rooms[sess.room];
-    const npc  = room?.objects?.[npcId];
+    const npc  = getNpcDef(room, npcId);
     if (!npc || npc.state === 'hidden') return;
 
     const acc  = Accounts.data[sess.loginId];
@@ -118,13 +128,9 @@ function startCombat(socket, sess, npcId) {
     initCS(sess, npcId, npc);
     push(socket, sess);
 
-    const msg = {
-        goblin: {
-            goblin: "It locks eyes with you. Neither of you moves. Yet.",
-            human:  "It locks eyes with you. You feel its intent.",
-            elf:    "Its eyes find yours. The air between you changes.",
-        }
-    }[npcId]?.[race] ?? `The ${npcId} turns toward you.`;
+    const msg = npc?.noticeByRace?.[race]
+        ?? { goblin: "It locks eyes with you. Neither of you moves. Yet.", human: "It locks eyes with you. You feel its intent.", elf: "Its eyes find yours. The air between you changes." }[race]
+        ?? `The ${npcId} turns toward you.`;
     Sessions.sendSystem(socket, msg);
 
     // NPC auto-advances after 4s
@@ -145,13 +151,8 @@ function npcAdvance(socket, sess) {
         setStage(sess, STAGE.APPROACH);
         push(socket, sess);
 
-        const msg = {
-            goblin: {
-                goblin: "It takes a step toward you. Deliberate.",
-                human:  "It moves closer. You can smell it now.",
-                elf:    "It advances. Unhurried. Certain.",
-            }
-        }[npcId]?.[race] ?? `The ${npcId} moves closer.`;
+        const msg = npc?.approachByRace?.[race]
+            ?? "It moves closer.";
         Sessions.sendSystem(socket, msg);
 
         clearAdvance(sess.loginId);
@@ -161,13 +162,7 @@ function npcAdvance(socket, sess) {
         setStage(sess, STAGE.MELEE);
         push(socket, sess);
 
-        const msg = {
-            goblin: {
-                goblin: "It's on you. No more thinking.",
-                human:  "It lunges. You're in melee range.",
-                elf:    "It closes the gap. Combat has begun.",
-            }
-        }[npcId]?.[race] ?? `The ${npcId} engages you!`;
+        const msg = npc?.meleeByRace?.[race] ?? "It engages you!";
         Sessions.sendSystem(socket, msg);
 
         startNpcAttackLoop(socket, sess);
@@ -193,9 +188,9 @@ function startNpcAttackLoop(socket, sess) {
         const race = acc?.race ?? 'human';
 
         if (!hitRoll(0.2)) {
-            const miss = {
-                goblin: { goblin: "It lunges — you sidestep.", human: "It swings wide. Lucky.", elf: "Its strike finds nothing." }
-            }[cs.npcId]?.[race] ?? `The ${cs.npcId} misses.`;
+            const miss = npc?.missByRace?.[race]
+                ?? { goblin: "It lunges — you sidestep.", human: "It swings wide. Lucky.", elf: "Its strike finds nothing." }[race]
+                ?? `The ${cs.npcId} misses.`;
             Sessions.sendSystem(socket, miss);
             return;
         }
@@ -205,13 +200,7 @@ function startNpcAttackLoop(socket, sess) {
         sess.hp = cs.playerHp;
         socket.send(JSON.stringify({ type: 'stats', hp: cs.playerHp }));
 
-        const hit = {
-            goblin: {
-                goblin: `It hits you for ${dmg}. (${cs.playerHp} hp)`,
-                human:  `It strikes for ${dmg} damage. (${cs.playerHp} hp)`,
-                elf:    `It finds a gap. ${dmg} damage. (${cs.playerHp} hp)`,
-            }
-        }[cs.npcId]?.[race] ?? `The ${cs.npcId} hits for ${dmg}. (${cs.playerHp} hp)`;
+        const hit = (npc?.hitByRace?.[race] ?? `The ${cs.npcId} hits for {dmg}. ({hp} hp)`).replace('{dmg}', dmg).replace('{hp}', cs.playerHp);
         Sessions.sendSystem(socket, hit);
 
         push(socket, sess);
@@ -235,7 +224,7 @@ function playerAttack(socket, sess, weaponId) {
     const race  = acc?.race ?? 'human';
     const def   = World.items[weaponId];
     const room  = World.rooms[sess.room];
-    const npc   = room?.objects?.[cs.npcId];
+    const npc   = getNpcDef(room, cs.npcId);
 
     if (!hitRoll(0.15)) {
         const miss = {
@@ -322,34 +311,7 @@ function playerDeath(socket, sess) {
         human:  "You fall. When you wake, you're at the beginning.",
         elf:    "The world fades. You return to where it started. Again.",
     }[race] ?? "You have been defeated.";
-    Sessions.sendSystem(socket, msg);
-
-    sess.hp = 100;
-    acc.hands    = { left: null, right: null };
-    acc.lastRoom = 'forest-g3';
-    sess.wielding = {};
-    Accounts.save();
-
-    socket.send(JSON.stringify({ type: 'hands', hands: acc.hands }));
-    socket.send(JSON.stringify({ type: 'wielding', wielding: {} }));
-    socket.send(JSON.stringify({ type: 'stats', hp: 100 }));
-
-    const Room = require('../core/room');
-    sess.room = 'forest-g3';
-    Room.sendRoom(socket, 'forest-g3');
-}
-
-function npcDeath(socket, sess, npc, race) {
-    clearAllTimers(sess.loginId);
-    endCS(sess);
-    push(socket, sess);
-
-    const msg = {
-        goblin: "It drops. Not quite pride. Not quite guilt.",
-        human:  "The goblin falls. The silence returns.",
-        elf:    "It collapses. You stand over it, uncertain what you feel.",
-    }[race] ?? "Your enemy is defeated.";
-    Sessions.sendSystem(socket, msg);
+    Sessions.sendSystem(socket, npc?.deathByRace?.[race] ?? "Your enemy is defeated.");
 
     const room = World.rooms[sess.room];
     if (npc?.dropTable && room) {
