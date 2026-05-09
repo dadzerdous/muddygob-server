@@ -200,9 +200,13 @@ function sendRoom(socket, id) {
 
     // ---------- SCENERY + NPCs ----------
     if (room.objects) {
-        for (const [key, obj] of Object.entries(room.objects)) {
+        for (const [key, rawObj] of Object.entries(room.objects)) {
             if (seenIds.has(key)) continue;
             seenIds.add(key);
+
+            // Resolve npcRef — merge NPC def with room-level state override
+            const npcDef = rawObj.npcRef ? World.npcs[rawObj.npcRef] : null;
+            const obj    = npcDef ? { ...npcDef, ...rawObj, type: 'npc' } : rawObj;
 
             const isHidden = obj.state === 'hidden';
 
@@ -210,13 +214,13 @@ function sendRoom(socket, id) {
             if (!isHidden) {
                 const roomDesc = (obj.roomDescByRace && race && obj.roomDescByRace[race])
                     || obj.roomDesc
-                    || null;
+                    || (obj.name ? `A ${obj.name} is here.` : null);
                 if (roomDesc) desc.push(roomDesc);
             }
 
             objectList.push({
                 id:         key,
-                name:       obj.name || key,   // use explicit name if set
+                name:       obj.name || key,
                 type:       obj.type || "scenery",
                 emoji:      isHidden ? "" : (obj.emoji || ""),
                 actions:    isHidden ? [] : (obj.actions || ["look"]),
@@ -312,20 +316,25 @@ function sendRoom(socket, id) {
 
         // Aggressive NPCs — auto-engage player after a delay
         if (combatants.length > 0 && sess.state === 'ready') {
-            const Combat = require('../commands/combat');
-            const cs = Combat.getCS(sess);
-            // Only trigger if not already in combat
-            if (!cs || cs.stage === 'idle') {
-                const npcId = combatants[0].id;
-                setTimeout(() => {
-                    // Re-check player is still in room and not already in combat
-                    const stillHere = Sessions.get(socket)?.room === id;
-                    const stillIdle = !Combat.getCS(sess)?.stage || Combat.getCS(sess).stage === 'idle';
-                    if (stillHere && stillIdle) {
-                        Combat.startCombat(socket, sess, npcId);
+            try {
+                const Combat = require('../commands/combat');
+                const cs = sess.combatState;
+                // Only auto-aggro if NPC is marked aggressive and player not in combat
+                if (!cs || cs.stage === 'idle') {
+                    const npcId = combatants[0].id;
+                    const npcObj = room.objects?.[npcId];
+                    const npcDef2 = npcObj?.npcRef ? World.npcs[npcObj.npcRef] : npcObj;
+                    if (npcDef2?.aggressive !== false) { // aggressive by default
+                        setTimeout(() => {
+                            const stillHere = Sessions.get(socket)?.room === id;
+                            const currentStage = sess.combatState?.stage;
+                            if (stillHere && (!currentStage || currentStage === 'idle')) {
+                                Combat.startCombat(socket, sess, npcId);
+                            }
+                        }, 3000);
                     }
-                }, 3000); // 3 second grace period before goblin notices
-            }
+                }
+            } catch(e) { console.error('[AGGRO]', e); }
         }
 
     } catch (err) {
