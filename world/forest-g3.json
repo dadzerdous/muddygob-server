@@ -24,7 +24,8 @@
         },
         "lookText": "It's fake. You can tell. You still want it.",
         "actions": [
-          "look"
+          "look",
+          "take"
         ]
       }
     },
