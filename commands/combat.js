@@ -300,10 +300,16 @@ function retreat(socket, sess) {
             push(socket, sess);
             const msg = { goblin: "You bolt. It doesn't follow. This time.", human: "You run. It lets you go. For now.", elf: "You withdraw. It watches you leave." }[race] ?? "You flee.";
             Sessions.sendSystem(socket, msg);
+            // Goblin re-engages after a longer delay if player stays
+            _advanceTimers[sess.loginId] = setTimeout(() => {
+                const stillHere = require('../core/sessions').get(socket)?.room === sess.room;
+                const stillIdle = !sess.combatState?.stage || sess.combatState.stage === 'idle';
+                if (stillHere && stillIdle) startCombat(socket, sess, cs.npcId);
+            }, 8000);
         } else {
             const msg = { goblin: "You try to run. It's faster.", human: "You bolt — but it cuts you off.", elf: "You move to leave. It moves faster." }[race] ?? "You fail to flee.";
             Sessions.sendSystem(socket, msg);
-            npcAdvance(socket, sess);
+            setTimeout(() => npcAdvance(socket, sess), 1500);
         }
     }
 }
