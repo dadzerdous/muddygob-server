@@ -49,6 +49,7 @@
           "engage"
         ],
         "combatant": true,
+        "aggressive": true,
         "hp": 15,
         "damage": 2,
         "xpReward": 10,
