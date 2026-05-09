@@ -65,6 +65,14 @@
           }
         ]
       }
-    }
+    },
+    "ambientTexts": [
+      "Moss shifts slightly under your weight.",
+      "Something small watches from the undergrowth.",
+      "The symbols on the tree seem darker than before.",
+      "A twig snaps nearby. Nothing moves.",
+      "The air smells of rain that hasn't come yet."
+    ],
+    "ambientInterval": 15000
   }
 }

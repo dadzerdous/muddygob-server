@@ -29,8 +29,50 @@
         "lookText": "Not just quiet. Wrong. Like something removed the sound on purpose."
       },
       "goblin": {
-        "npcRef": "goblin_grunt",
-        "state": "hidden"
+        "type": "npc",
+        "state": "hidden",
+        "emoji": "👺",
+        "roomDescHidden": null,
+        "roomDescByRace": {
+          "goblin": "One of your kind — a goblin — crouches in the darkness, watching.",
+          "human": "A goblin crouches in the darkness. You can feel it watching.",
+          "elf": "A goblin stirs in the dark. Low. Patient. Hungry."
+        },
+        "lookText": "It looks like trouble.",
+        "lookTextByRace": {
+          "goblin": "Smaller than you expected. Meaner than you hoped. It sizes you up the same way you're sizing it up.",
+          "human": "A goblin. Ragged, quick-eyed, and very aware of you.",
+          "elf": "A goblin. It watches you with the focused attention of something that has decided you are interesting."
+        },
+        "actions": [
+          "look",
+          "engage"
+        ],
+        "combatant": true,
+        "hp": 15,
+        "damage": 2,
+        "xpReward": 10,
+        "dropTable": [
+          "note_from_goblin"
+        ],
+        "name": "goblin",
+        "combatLookByHp": {
+          "full": {
+            "goblin": "It hasn't broken a sweat. Eyes sharp, posture low. This one knows what it's doing.",
+            "human": "It looks completely uninjured. Alert, focused. This won't be easy.",
+            "elf": "It is unhurt. Its attention is entirely on you."
+          },
+          "half": {
+            "goblin": "Dark stains on its side. Still moving though. Still mean.",
+            "human": "It's wounded but fighting through it. Blood on its flank.",
+            "elf": "It carries injury but hasn't slowed. Dangerous still."
+          },
+          "low": {
+            "goblin": "It's struggling. Breathing hard. One more good hit.",
+            "human": "It can barely hold its stance. Nearly done.",
+            "elf": "It is close to the end. It knows this. So do you."
+          }
+        }
       }
     },
     "exits": {
@@ -75,6 +117,14 @@
           }
         ]
       }
-    }
+    },
+    "ambientTexts": [
+      "The fog breathes.",
+      "Something shifts in the dark. You tell yourself it's nothing.",
+      "The silence gets louder.",
+      "You hear your own heartbeat.",
+      "The darkness has texture here."
+    ],
+    "ambientInterval": 15000
   }
 }

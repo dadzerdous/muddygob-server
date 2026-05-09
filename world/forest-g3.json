@@ -56,6 +56,14 @@
           }
         ]
       }
-    }
+    },
+    "ambientTexts": [
+      "Something moves in the water. Then doesn't.",
+      "The fog thins for a moment. You see the sky. Then you don't.",
+      "A branch cracks somewhere behind you.",
+      "The pond surface ripples. There's no wind.",
+      "Distant birdsong. Then silence."
+    ],
+    "ambientInterval": 15000
   }
 }

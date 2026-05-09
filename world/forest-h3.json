@@ -21,7 +21,7 @@
       "glint": {
         "type": "scenery",
         "emoji": "✨",
-        "roomDesc": "A faint glint catches your eye between the roots.",
+        "roomDesc": "Something glints faintly between the roots.",
         "lookText": "You reach for it. Your fingers brush something cold. But it's gone."
       }
     },
@@ -36,6 +36,14 @@
       "west": "forest-g3"
     },
     "background": "forest-underbrush.png",
-    "instance": "tutorial"
+    "instance": "tutorial",
+    "ambientTexts": [
+      "The brambles shift without wind.",
+      "Something small scurries between the roots.",
+      "The glint flickers. Briefly. Gone.",
+      "You feel watched but see nothing watching.",
+      "The thorns seem closer than before."
+    ],
+    "ambientInterval": 15000
   }
 }
