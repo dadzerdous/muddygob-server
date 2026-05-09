@@ -105,12 +105,9 @@ function clearAllTimers(loginId) {
 }
 
 // ── MESSAGE HELPERS ───────────────────────────────────────
-function sendHit(socket, msg, hand) {
-    // hand: 'left' | 'right' | 'enemy' | undefined
-    const msgType = hand === 'left'  ? 'hit-left'
-                  : hand === 'right' ? 'hit-right'
-                  : hand === 'enemy' ? 'hit-enemy'
-                  : 'hit'; // fallback
+function sendHit(socket, msg, side) {
+    // side: 'player' | 'enemy'
+    const msgType = side === 'enemy' ? 'hit-enemy' : 'hit-player';
     socket.send(JSON.stringify({ type: 'system', msg, msgType }));
 }
 function sendMiss(socket, msg) {
@@ -322,8 +319,9 @@ function startNpcAttackLoop(socket, sess) {
         sess.hp = cs.playerHp;
         socket.send(JSON.stringify({ type: 'stats', hp: cs.playerHp }));
 
+        const npcEmoji = npc?.emoji ?? '👾';
         const hitTemplate = npc?.hitByRace?.[race]
-            ?? `The ${cs.npcId} hits for {dmg}. ({hp} hp)`;
+            ?? `${npcEmoji} The ${cs.npcId} hits for {dmg}. ({hp} hp)`;
         const hit = hitTemplate.replace('{dmg}', dmg).replace('{hp}', cs.playerHp);
         sendHit(socket, hit, 'enemy');
 
@@ -372,10 +370,12 @@ function playerAttack(socket, sess, weaponId) {
     const dmgType = def?.damage?.[0]?.type ?? (isArmed ? 'physical' : 'blunt');
     cs.npcHp = Math.max(0, cs.npcHp - dmg);
 
+    const weaponEmoji = def?.emoji ?? (isArmed ? '⚔️' : (hand === 'left' ? '✋' : '🤚'));
+
     const hit = isArmed
-        ? ({ goblin: `You hit for ${dmg} ${dmgType}.`, human: `You strike the ${cs.npcId} for ${dmg} ${dmgType}.`, elf: `${dmg} ${dmgType}. Clean.` }[race] ?? `${dmg} damage.`)
-        : ({ goblin: `Your fist connects. ${dmg} damage.`, human: `You punch the ${cs.npcId}. ${dmg} damage.`, elf: `A solid strike. ${dmg} damage.` }[race] ?? `${dmg} damage.`);
-    sendHit(socket, hit, hand);
+        ? ({ goblin: `${weaponEmoji} You hit for ${dmg} ${dmgType}.`, human: `${weaponEmoji} You strike for ${dmg} ${dmgType}.`, elf: `${weaponEmoji} ${dmg} ${dmgType}. Clean.` }[race] ?? `${weaponEmoji} ${dmg} damage.`)
+        : ({ goblin: `${weaponEmoji} Your fist connects. ${dmg} damage.`, human: `${weaponEmoji} You punch for ${dmg} damage.`, elf: `${weaponEmoji} Solid. ${dmg} damage.` }[race] ?? `${weaponEmoji} ${dmg} damage.`);
+    sendHit(socket, hit, 'player');
 
     if (cs.npcHp <= 0) {
         npcDeath(socket, sess, npc, acc, race);
