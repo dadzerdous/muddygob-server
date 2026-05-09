@@ -8,6 +8,7 @@ module.exports = {
     help: "take <item>",
 
     execute(ctx, arg) {
+        const World = require('../core/world');
         const { socket, sess, sendSystem, sendRoom, accounts, world } = ctx;
         const Accounts = require("../core/accounts");
 
@@ -38,7 +39,7 @@ module.exports = {
         if (!room) return sendSystem(socket, "This place does not exist.");
         if (!Array.isArray(room.items)) return sendSystem(socket, `There is no ${itemName} here.`);
 
-        const idx = room.items.findIndex(i => normalize(i.defId) === itemName);
+        const idx = room.items.findIndex(i => normalize(i.defId) === itemName || normalize(World.items[i.defId]?.name ?? '') === itemName);
         if (idx === -1) return sendSystem(socket, `There is no ${itemName} here.`);
 
         // Check ownership
@@ -60,7 +61,7 @@ module.exports = {
         Accounts.save();
 
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
-        socket.send(JSON.stringify({type:'system',msg:`You pick up the ${itemName}.`,msgType:'action'}));
+        sendSystem(socket, `You pick up the ${itemName}.`);
         sendRoom(socket, sess.room);
     }
 };

@@ -25,25 +25,6 @@ module.exports = {
         if (!acc) return;
         const race = acc.race || "human";
 
-        // Combat look — show HP-based description if fighting this NPC
-        const Combat = require('../commands/combat');
-        const cs = Combat.getCombatSession ? Combat.getCombatSession(sess.loginId) : Combat.getCS?.(sess);
-        if (cs && cs.npcId === objName) {
-            const World = require('../core/world');
-            const room  = World.rooms[sess.room];
-            const rawObj = room?.objects?.[objName];
-            const npc   = rawObj?.npcRef
-                ? { ...World.npcs[rawObj.npcRef], ...rawObj }
-                : rawObj;
-            const pct  = cs.npcHp / (npc?.hp ?? 15);
-            const tier = pct > 0.66 ? 'full' : pct > 0.33 ? 'half' : 'low';
-            const desc = npc?.combatLookByHp?.[tier]?.[race]
-                || (pct > 0.66 ? `The ${objName} looks healthy.`
-                :  pct > 0.33 ? `The ${objName} looks wounded.`
-                :               `The ${objName} looks near death.`);
-            return sendSystem(socket, desc);
-        }
-
         // ---------------------------------------
         // 0) PLAYER INSPECT: look <player>
         // ---------------------------------------
@@ -102,7 +83,7 @@ if (!room) {
 // 3A) LOOK AT ITEM INSTANCES IN ROOM
 // ---------------------------------------
 if (Array.isArray(room.items)) {
-    const inst = room.items.find(i => i.defId === objName);
+    const inst = room.items.find(i => i.defId === objName || World.items[i.defId]?.name?.toLowerCase() === objName);
     if (inst) {
         const def = World.items[objName];
         if (def) {
@@ -122,7 +103,7 @@ if (Array.isArray(room.items)) {
 
         if (room.objects) {
             for (const [instanceId, obj] of Object.entries(room.objects)) {
-                if (instanceId === objName || obj.itemId === objName) {
+                if (instanceId === objName || obj.itemId === objName || (obj.name && obj.name.toLowerCase() === objName)) {
                     target = obj;
                     break;
                 }
