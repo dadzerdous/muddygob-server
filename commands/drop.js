@@ -36,7 +36,7 @@ module.exports = {
                 room.items.push({ id: `${itemName}_${Date.now()}`, defId: itemName });
                 acc.inventory = acc.inventory.filter(i => i !== itemName);
                 Accounts.save();
-                socket.send(JSON.stringify({ type:"system", msg:`You drop the ${itemName}.`, msgType:"action" }));
+                socket.send(JSON.stringify({type:'system',msg:`You drop the ${itemName}.`,msgType:'action'}));
                 broadcastToRoomExcept(sess.room, `${acc.name} drops a ${itemName}.`, socket);
                 sendRoom(socket, sess.room);
                 return;
@@ -66,7 +66,7 @@ module.exports = {
         Accounts.save();
 
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
-        socket.send(JSON.stringify({ type:"system", msg:`You drop the ${itemName}.`, msgType:"action" }));
+        socket.send(JSON.stringify({type:'system',msg:`You drop the ${itemName}.`,msgType:'action'}));
         broadcastToRoomExcept(sess.room, `${acc.name} drops a ${itemName}.`, socket);
         sendRoom(socket, sess.room);
     }
