@@ -42,7 +42,7 @@ function fireOutcome(socket, sess, acc, race, outcome) {
 
         case 'system': {
             const msg = outcome.msgByRace?.[race] || outcome.msg || '';
-            Sessions.sendSystem(socket, msg);
+            socket.send(JSON.stringify({ type: 'system', msg, msgType: 'event' }));
 
             // Broadcast to others in room if specified
             if (outcome.broadcast) {
@@ -58,18 +58,6 @@ function fireOutcome(socket, sess, acc, race, outcome) {
 
             const room = World.rooms[sess.room];
             if (!room.items) room.items = [];
-
-            // If room has a matching hidden object, reveal it and mark discovered
-            if (room.objects?.[item]?.state === 'hidden') {
-                room.objects[item].state = 'visible';
-                // Auto-discover for the actor
-                if (!acc.discovered) acc.discovered = {};
-                if (!acc.discovered[sess.room]) acc.discovered[sess.room] = [];
-                if (!acc.discovered[sess.room].includes(item)) {
-                    acc.discovered[sess.room].push(item);
-                    Accounts.save();
-                }
-            }
 
             if (owner === 'actor' && !onGround) {
                 // Put directly in player's hands
@@ -114,16 +102,6 @@ function fireOutcome(socket, sess, acc, race, outcome) {
         case 'sendRoom': {
             const Room = require("./room");
             Room.sendRoom(socket, sess.room);
-            break;
-        }
-
-        case 'revealNpc': {
-            const { npc } = outcome;
-            if (!npc) break;
-            const room = World.rooms[sess.room];
-            if (!room?.objects?.[npc]) break;
-            room.objects[npc].state = 'visible';
-            console.log('[EVENT] revealed NPC:', npc);
             break;
         }
 
