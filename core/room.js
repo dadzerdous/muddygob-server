@@ -188,15 +188,18 @@ function sendRoom(socket, id) {
         ? [...room.text]
         : ["You see nothing special."];
 
-    // Per-player discovery — per-room PLUS globally known item ids
+    // Per-player discovery for this room
     const playerDisc = (acc?.discovered && !Array.isArray(acc.discovered))
         ? (acc.discovered[id] || [])
         : [];
-    // Build global known set (all item ids discovered anywhere)
+    // Global known: only World.items (takeable items), not scenery
     const globalKnown = new Set();
     if (acc?.discovered && !Array.isArray(acc.discovered)) {
-        for (const roomDiscs of Object.values(acc.discovered)) {
-            for (const itemId of roomDiscs) globalKnown.add(itemId);
+        for (const [roomId, roomDiscs] of Object.entries(acc.discovered)) {
+            if (roomId === id) continue; // skip current room — use playerDisc
+            for (const itemId of roomDiscs) {
+                if (World.items[itemId]) globalKnown.add(itemId); // items only
+            }
         }
     }
     const discSet = new Set([...playerDisc, ...globalKnown]);
