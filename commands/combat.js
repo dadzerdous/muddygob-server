@@ -1,6 +1,19 @@
 // ===============================================
 // commands/combat.js
 // Single source of truth: sess.combatState
+//
+// STAGE DESIGN:
+//   idle   — no combat, free movement
+//   notice — NPC spotted player, narrative only, NOT a combat state
+//            player can move freely, NPC advances on timer
+//   ranged — combat begins here: bag locked, retreat visible
+//            NPC closing, player can throw/retreat(90%)
+//   melee  — ATB per hand (weapon or unarmed), NPC attacks on own timer
+//            retreat(90%) → ranged
+//
+// EXIT COMBAT: leave the room (movement unblocked at notice/idle)
+// NPC DEATH:   drop table + XP + re-hide, idle
+// PLAYER DEATH: respawn at start room, idle
 // ===============================================
 
 const World    = require('../core/world');
@@ -9,11 +22,13 @@ const Sessions = require('../core/sessions');
 
 // ── STAGES ───────────────────────────────────────────────
 const STAGE = {
-    IDLE:     'idle',
-    NOTICE:   'notice',
-    APPROACH: 'approach',
-    MELEE:    'melee',
+    IDLE:   'idle',
+    NOTICE: 'notice',   // narrative only — not a combat lock
+    RANGED: 'ranged',   // combat start
+    MELEE:  'melee',
 };
+
+const START_ROOM = 'forest-g3';
 
 // ── DICE ─────────────────────────────────────────────────
 function roll(sides) { return Math.floor(Math.random() * sides) + 1; }
@@ -32,10 +47,19 @@ function hitRoll(missChance = 0.15) {
     return Math.random() > missChance;
 }
 
-// ── STATE HELPERS ─────────────────────────────────────────
-function getCS(sess) {
-    return sess.combatState;
+// ── NPC LOOKUP — always use this, merges npcRef ──────────
+function getNpcDef(room, npcId) {
+    const obj = room?.objects?.[npcId];
+    if (!obj) return null;
+    if (obj.npcRef) {
+        const def = World.npcs?.[obj.npcRef];
+        return def ? { ...def, ...obj } : obj;
+    }
+    return obj;
 }
+
+// ── STATE HELPERS ─────────────────────────────────────────
+function getCS(sess) { return sess.combatState; }
 
 function initCS(sess, npcId, npc) {
     sess.combatState = {
@@ -52,7 +76,9 @@ function setStage(sess, stage) {
 }
 
 function endCS(sess) {
-    sess.combatState = { stage: STAGE.IDLE, npcId: null, npcHp: null, playerHp: null, roomId: null };
+    sess.combatState = {
+        stage: STAGE.IDLE, npcId: null, npcHp: null, playerHp: null, roomId: null
+    };
 }
 
 // ── TIMERS (keyed by loginId) ─────────────────────────────
@@ -60,11 +86,17 @@ const _advanceTimers = {};
 const _attackTimers  = {};
 
 function clearAdvance(loginId) {
-    if (_advanceTimers[loginId]) { clearTimeout(_advanceTimers[loginId]); delete _advanceTimers[loginId]; }
+    if (_advanceTimers[loginId]) {
+        clearTimeout(_advanceTimers[loginId]);
+        delete _advanceTimers[loginId];
+    }
 }
 
 function clearAttack(loginId) {
-    if (_attackTimers[loginId]) { clearInterval(_attackTimers[loginId]); delete _attackTimers[loginId]; }
+    if (_attackTimers[loginId]) {
+        clearInterval(_attackTimers[loginId]);
+        delete _attackTimers[loginId];
+    }
 }
 
 function clearAllTimers(loginId) {
@@ -72,7 +104,7 @@ function clearAllTimers(loginId) {
     clearAttack(loginId);
 }
 
-// ── COMBAT MESSAGE HELPERS ───────────────────────────────
+// ── MESSAGE HELPERS ───────────────────────────────────────
 function sendHit(socket, msg) {
     socket.send(JSON.stringify({ type: 'system', msg, msgType: 'hit' }));
 }
@@ -83,45 +115,79 @@ function sendEvent(socket, msg) {
     socket.send(JSON.stringify({ type: 'system', msg, msgType: 'event' }));
 }
 
-// ── PUSH STATE TO CLIENT ──────────────────────────────────
+// ── PUSH COMBAT STATE TO CLIENT ───────────────────────────
 function push(socket, sess) {
     const cs = getCS(sess);
     socket.send(JSON.stringify({
         type:     'combat',
         stage:    cs?.stage    ?? STAGE.IDLE,
         npcId:    cs?.npcId   ?? null,
+        npcHp:    cs?.npcHp   ?? null,
         playerHp: cs?.playerHp ?? sess.hp ?? 100,
     }));
 }
 
-// ── GUARD — blocks actions mid-combat ────────────────────
-function getNpcDef(room, npcId) {
-    const obj = room?.objects?.[npcId];
-    if (!obj) return null;
-    if (obj.npcRef) {
-        const def = World.npcs?.[obj.npcRef];
-        return def ? { ...def, ...obj } : obj;
-    }
-    return obj;
-}
-
+// ── GUARD — blocks item actions during ranged/melee ──────
+// Notice is NOT blocked — player can move and act freely
 function requireIdle(sess, socket, action) {
     const stage = sess.combatState?.stage;
-    if (!stage || stage === STAGE.IDLE) return true;
+    if (!stage || stage === STAGE.IDLE || stage === STAGE.NOTICE) return true;
     const blocked = {
-        melee:    `You can't ${action} while fighting.`,
-        approach: `Not while the ${sess.combatState.npcId} is advancing on you.`,
-        notice:   `You're being watched. Not now.`,
+        melee:  `You can't ${action} while fighting.`,
+        ranged: `Not while the ${sess.combatState.npcId} is closing on you.`,
     };
     Sessions.sendSystem(socket, blocked[stage] ?? `Can't ${action} right now.`);
     return false;
 }
 
-// ── ENGAGE ───────────────────────────────────────────────
+// ── NPC NOTICE — sends flavour text, queues advance ──────
+// This fires when an aggressive NPC spots the player.
+// It is NOT a combat state — player is still free to move.
+function npcNotice(socket, sess, npcId) {
+    const room = World.rooms[sess.room];
+    const npc  = getNpcDef(room, npcId);
+    if (!npc || npc.state === 'hidden') return;
+
+    const acc  = Accounts.data[sess.loginId];
+    const race = acc?.race ?? 'human';
+
+    // Set notice stage for narrative purposes only
+    if (!sess.combatState) sess.combatState = { stage: STAGE.IDLE };
+    sess.combatState.stage   = STAGE.NOTICE;
+    sess.combatState.npcId   = npcId;
+    sess.combatState.npcHp   = npc.hp ?? 15;
+    sess.combatState.playerHp = sess.hp ?? 100;
+    sess.combatState.roomId  = sess.room;
+
+    // Send notice — client shows nothing special in botbar at this stage
+    push(socket, sess);
+
+    const msg = npc?.noticeByRace?.[race]
+        ?? { goblin: "It locks eyes with you. Neither of you moves. Yet.", human: "It notices you.", elf: "Its gaze finds yours." }[race]
+        ?? `The ${npcId} notices you.`;
+    sendEvent(socket, msg);
+
+    // NPC advances to ranged after delay
+    clearAdvance(sess.loginId);
+    const advanceDelay = npc.advanceDelay ?? 4000;
+    _advanceTimers[sess.loginId] = setTimeout(() => {
+        if (socket.readyState !== 1) return;
+        // Only advance if player is still in the same room
+        if (sess.room !== sess.combatState?.roomId) {
+            endCS(sess);
+            return;
+        }
+        npcAdvanceToRanged(socket, sess);
+    }, advanceDelay);
+}
+
+// ── ENGAGE — player taps NPC chip ─────────────────────────
+// Immediately starts combat at ranged stage (player chose to engage)
 function startCombat(socket, sess, npcId) {
     const cs = getCS(sess);
-    // Already in combat with this NPC — ignore
-    if (cs?.npcId === npcId && cs?.stage !== STAGE.IDLE) return;
+
+    // Already in ranged/melee with this NPC — ignore
+    if (cs?.npcId === npcId && (cs?.stage === STAGE.RANGED || cs?.stage === STAGE.MELEE)) return;
 
     const room = World.rooms[sess.room];
     const npc  = getNpcDef(room, npcId);
@@ -130,61 +196,98 @@ function startCombat(socket, sess, npcId) {
     const acc  = Accounts.data[sess.loginId];
     const race = acc?.race ?? 'human';
 
+    clearAllTimers(sess.loginId);
+
     // Auto-wield whatever's in hands on engage
     if (!sess.wielding) sess.wielding = {};
     if (acc?.hands?.left)  sess.wielding[acc.hands.left]  = true;
     if (acc?.hands?.right) sess.wielding[acc.hands.right] = true;
     socket.send(JSON.stringify({ type: 'wielding', wielding: sess.wielding }));
 
-    initCS(sess, npcId, npc);
+    // Jump straight to ranged — player chose to engage
+    sess.combatState = {
+        stage:    STAGE.RANGED,
+        npcId,
+        npcHp:    npc.hp ?? 15,
+        playerHp: sess.hp ?? 100,
+        roomId:   sess.room,
+    };
     push(socket, sess);
 
-    const msg = npc?.noticeByRace?.[race]
-        ?? { goblin: "It locks eyes with you. Neither of you moves. Yet.", human: "It locks eyes with you. You feel its intent.", elf: "Its eyes find yours. The air between you changes." }[race]
-        ?? `The ${npcId} turns toward you.`;
-    Sessions.sendSystem(socket, msg);
+    const msg = npc?.approachByRace?.[race]
+        ?? { goblin: "You step toward it. It tenses.", human: "You advance. It readies itself.", elf: "You move in. It watches every step." }[race]
+        ?? `You engage the ${npcId}.`;
+    sendEvent(socket, msg);
 
-    // NPC auto-advances after 4s
+    // NPC closes to melee after short delay
     clearAdvance(sess.loginId);
-    _advanceTimers[sess.loginId] = setTimeout(() => { if (socket.readyState === 1) npcAdvance(socket, sess); }, 4000);
+    _advanceTimers[sess.loginId] = setTimeout(() => {
+        if (socket.readyState === 1) npcAdvanceToMelee(socket, sess);
+    }, 3000);
 }
 
-// ── NPC ADVANCE ──────────────────────────────────────────
-function npcAdvance(socket, sess) {
+// ── NPC ADVANCE: notice → ranged ─────────────────────────
+function npcAdvanceToRanged(socket, sess) {
     const cs = getCS(sess);
-    if (!cs || cs.stage === STAGE.IDLE) return;
+    if (!cs || cs.stage !== STAGE.NOTICE) return;
 
-    const acc   = Accounts.data[sess.loginId];
-    const race  = acc?.race ?? 'human';
-    const npcId = cs.npcId;
+    const room = World.rooms[sess.room];
+    const npc  = getNpcDef(room, cs.npcId);
+    if (!npc) return;
 
-    if (cs.stage === STAGE.NOTICE) {
-        setStage(sess, STAGE.APPROACH);
-        push(socket, sess);
+    const acc  = Accounts.data[sess.loginId];
+    const race = acc?.race ?? 'human';
 
-        const msg = npc?.approachByRace?.[race]
-            ?? "It moves closer.";
-        Sessions.sendSystem(socket, msg);
+    // Auto-wield on NPC advance
+    if (!sess.wielding) sess.wielding = {};
+    if (acc?.hands?.left)  sess.wielding[acc.hands.left]  = true;
+    if (acc?.hands?.right) sess.wielding[acc.hands.right] = true;
+    socket.send(JSON.stringify({ type: 'wielding', wielding: sess.wielding }));
 
-        clearAdvance(sess.loginId);
-        _advanceTimers[sess.loginId] = setTimeout(() => { if (socket.readyState === 1) npcAdvance(socket, sess); }, 4000);
+    setStage(sess, STAGE.RANGED);
+    push(socket, sess);
 
-    } else if (cs.stage === STAGE.APPROACH) {
-        setStage(sess, STAGE.MELEE);
-        push(socket, sess);
+    const msg = npc?.approachByRace?.[race]
+        ?? { goblin: "It moves. Fast. Toward you.", human: "It advances. Combat is coming.", elf: "It closes the distance. Deliberately." }[race]
+        ?? `The ${cs.npcId} advances.`;
+    sendEvent(socket, msg);
 
-        const msg = npc?.meleeByRace?.[race] ?? "It engages you!";
-        Sessions.sendSystem(socket, msg);
+    // NPC closes to melee
+    clearAdvance(sess.loginId);
+    _advanceTimers[sess.loginId] = setTimeout(() => {
+        if (socket.readyState === 1) npcAdvanceToMelee(socket, sess);
+    }, 3000);
+}
 
-        startNpcAttackLoop(socket, sess);
-    }
+// ── NPC ADVANCE: ranged → melee ───────────────────────────
+function npcAdvanceToMelee(socket, sess) {
+    const cs = getCS(sess);
+    if (!cs || cs.stage !== STAGE.RANGED) return;
+
+    const room = World.rooms[sess.room];
+    const npc  = getNpcDef(room, cs.npcId);
+    if (!npc) return;
+
+    const acc  = Accounts.data[sess.loginId];
+    const race = acc?.race ?? 'human';
+
+    setStage(sess, STAGE.MELEE);
+    push(socket, sess);
+
+    const msg = npc?.meleeByRace?.[race]
+        ?? { goblin: "It's on you. No more distance.", human: "It closes in. This is it.", elf: "It is upon you. The gap is gone." }[race]
+        ?? `The ${cs.npcId} is in your face.`;
+    sendEvent(socket, msg);
+
+    startNpcAttackLoop(socket, sess);
 }
 
 // ── NPC ATTACK LOOP ───────────────────────────────────────
 function startNpcAttackLoop(socket, sess) {
     const cs   = getCS(sess);
     const room = World.rooms[sess.room];
-    const npc  = room?.objects?.[cs.npcId];
+    // Always use getNpcDef so npcRef merging works
+    const npc  = getNpcDef(room, cs.npcId);
     const speed = npc?.atbSpeed ?? 3000;
 
     clearAttack(sess.loginId);
@@ -195,6 +298,9 @@ function startNpcAttackLoop(socket, sess) {
             return;
         }
 
+        // Re-fetch in case room state changed
+        const room = World.rooms[sess.room];
+        const npc  = getNpcDef(room, cs.npcId);
         const acc  = Accounts.data[sess.loginId];
         const race = acc?.race ?? 'human';
 
@@ -211,8 +317,10 @@ function startNpcAttackLoop(socket, sess) {
         sess.hp = cs.playerHp;
         socket.send(JSON.stringify({ type: 'stats', hp: cs.playerHp }));
 
-        const hit = (npc?.hitByRace?.[race] ?? `The ${cs.npcId} hits for {dmg}. ({hp} hp)`).replace('{dmg}', dmg).replace('{hp}', cs.playerHp);
-        Sessions.sendSystem(socket, hit);
+        const hitTemplate = npc?.hitByRace?.[race]
+            ?? `The ${cs.npcId} hits for {dmg}. ({hp} hp)`;
+        const hit = hitTemplate.replace('{dmg}', dmg).replace('{hp}', cs.playerHp);
+        sendHit(socket, hit);
 
         push(socket, sess);
 
@@ -231,91 +339,90 @@ function playerAttack(socket, sess, weaponId) {
         return;
     }
 
-    const acc   = Accounts.data[sess.loginId];
-    const race  = acc?.race ?? 'human';
-    const def   = World.items[weaponId];
-    const room  = World.rooms[sess.room];
-    const npc   = getNpcDef(room, cs.npcId);
+    const acc  = Accounts.data[sess.loginId];
+    const race = acc?.race ?? 'human';
+    const room = World.rooms[sess.room];
+    const npc  = getNpcDef(room, cs.npcId);
+
+    // weaponId may be null/undefined for unarmed
+    const def    = weaponId ? World.items[weaponId] : null;
+    const isArmed = !!def;
 
     if (!hitRoll(0.15)) {
-        const miss = {
-            goblin: "You swing. It ducks. Nothing lands.",
-            human:  "You strike — but miss.",
-            elf:    "Your blow finds no mark.",
-        }[race] ?? "You miss.";
+        const miss = isArmed
+            ? ({ goblin: "You swing. It ducks. Nothing lands.", human: "You strike — but miss.", elf: "Your blow finds no mark." }[race] ?? "You miss.")
+            : ({ goblin: "Your fist finds air.", human: "You swing wide. Empty.", elf: "Your strike is too slow." }[race] ?? "You miss.");
         sendMiss(socket, miss);
         return;
     }
 
-    const dmg      = rollDamage(def);
-    const dmgTypes = def?.damage?.map(d => d.type).join('+') ?? 'physical';
+    const dmg = isArmed ? rollDamage(def) : 1;
+    const dmgType = def?.damage?.[0]?.type ?? (isArmed ? 'physical' : 'blunt');
     cs.npcHp = Math.max(0, cs.npcHp - dmg);
 
-    const hit = {
-        goblin: `You hit for ${dmg} ${dmgTypes} damage.`,
-        human:  `You strike the ${cs.npcId} for ${dmg} ${dmgTypes} damage.`,
-        elf:    `${dmg} ${dmgTypes} damage. Clean.`,
-    }[race] ?? `${dmg} ${dmgTypes} damage.`;
-    Sessions.sendSystem(socket, hit);
+    const hit = isArmed
+        ? ({ goblin: `You hit for ${dmg} ${dmgType}.`, human: `You strike the ${cs.npcId} for ${dmg} ${dmgType}.`, elf: `${dmg} ${dmgType}. Clean.` }[race] ?? `${dmg} damage.`)
+        : ({ goblin: `Your fist connects. ${dmg} damage.`, human: `You punch the ${cs.npcId}. ${dmg} damage.`, elf: `A solid strike. ${dmg} damage.` }[race] ?? `${dmg} damage.`);
+    sendHit(socket, hit);
 
     if (cs.npcHp <= 0) {
-        npcDeath(socket, sess, npc, race);
+        npcDeath(socket, sess, npc, acc, race);
         return;
     }
 
     push(socket, sess);
 }
 
-// ── RETREAT ───────────────────────────────────────────────
-function retreat(socket, sess) {
-    const cs = getCS(sess);
-    if (!cs || cs.stage === STAGE.IDLE) {
-        Sessions.sendSystem(socket, "You're not in combat.");
-        return;
-    }
-
-    const acc   = Accounts.data[sess.loginId];
-    const race  = acc?.race ?? 'human';
-    const npcId = cs.npcId;
-
+// ── NPC DEATH ─────────────────────────────────────────────
+function npcDeath(socket, sess, npc, acc, race) {
     clearAllTimers(sess.loginId);
 
-    if (cs.stage === STAGE.MELEE) {
-        setStage(sess, STAGE.APPROACH);
-        push(socket, sess);
-        const msg = { goblin: "You back off. Still close. Still dangerous.", human: "You disengage. Approach range.", elf: "You create distance. Briefly safer." }[race] ?? "You retreat to approach range.";
-        Sessions.sendSystem(socket, msg);
-        _advanceTimers[sess.loginId] = setTimeout(() => { if (socket.readyState === 1) npcAdvance(socket, sess); }, 3000);
+    const cs   = getCS(sess);
+    const room = World.rooms[sess.room];
 
-    } else if (cs.stage === STAGE.APPROACH) {
-        setStage(sess, STAGE.NOTICE);
-        push(socket, sess);
-        const msg = { goblin: "You're out of range. It watches.", human: "You back away. It watches. Not done.", elf: "You disengage. The tension holds." }[race] ?? "You retreat to notice range.";
-        Sessions.sendSystem(socket, msg);
-        _advanceTimers[sess.loginId] = setTimeout(() => { if (socket.readyState === 1) npcAdvance(socket, sess); }, 4000);
+    // Death message
+    const msg = npc?.deathByRace?.[race]
+        ?? { goblin: "It drops. You stand over it.", human: "It falls. The fight is over.", elf: "It goes still. The air changes." }[race]
+        ?? "Your enemy is defeated.";
+    sendEvent(socket, msg);
 
-    } else if (cs.stage === STAGE.NOTICE) {
-        if (Math.random() > 0.3) {
-            endCS(sess);
-            push(socket, sess);
-            const msg = { goblin: "You bolt. It doesn't follow. This time.", human: "You run. It lets you go. For now.", elf: "You withdraw. It watches you leave." }[race] ?? "You flee.";
-            Sessions.sendSystem(socket, msg);
-            // Goblin re-engages after a longer delay if player stays
-            _advanceTimers[sess.loginId] = setTimeout(() => {
-                const stillHere = require('../core/sessions').get(socket)?.room === sess.room;
-                const stillIdle = !sess.combatState?.stage || sess.combatState.stage === 'idle';
-                if (stillHere && stillIdle) startCombat(socket, sess, cs.npcId);
-            }, 8000);
-        } else {
-            const msg = { goblin: "You try to run. It's faster.", human: "You bolt — but it cuts you off.", elf: "You move to leave. It moves faster." }[race] ?? "You fail to flee.";
-            Sessions.sendSystem(socket, msg);
-            setTimeout(() => { if (socket.readyState === 1) npcAdvance(socket, sess); }, 1500);
-        }
+    // Drop table
+    if (npc?.dropTable?.length && room) {
+        if (!room.items) room.items = [];
+        npc.dropTable.forEach(itemId => {
+            room.items.push({
+                id:         `${itemId}_${Date.now()}`,
+                defId:      itemId,
+                originRoom: sess.room,
+            });
+        });
+        Sessions.sendSystem(socket, "Something falls to the ground.");
     }
+
+    // XP reward
+    if (npc?.xpReward) {
+        acc.xp = (acc.xp ?? 0) + npc.xpReward;
+        Accounts.save();
+        Sessions.sendSystem(socket, `+${npc.xpReward} XP`);
+    }
+
+    // Re-hide NPC in room
+    if (room?.objects?.[cs.npcId]) {
+        room.objects[cs.npcId].state = 'hidden';
+    }
+
+    endCS(sess);
+    push(socket, sess);
+
+    const Room = require('../core/room');
+    Room.sendRoom(socket, sess.room);
 }
 
-// ── DEATH ─────────────────────────────────────────────────
+// ── PLAYER DEATH ──────────────────────────────────────────
 function playerDeath(socket, sess) {
+    const cs   = getCS(sess);
+    const room = World.rooms[sess.room];
+    const npc  = getNpcDef(room, cs?.npcId);   // ← FIXED: was undefined
     const acc  = Accounts.data[sess.loginId];
     const race = acc?.race ?? 'human';
 
@@ -324,36 +431,120 @@ function playerDeath(socket, sess) {
     push(socket, sess);
 
     const msg = {
-        goblin: "Everything goes dark. Then lighter. You're back at the start.",
+        goblin: "Everything goes dark. Then lighter. You're back where you woke.",
         human:  "You fall. When you wake, you're at the beginning.",
         elf:    "The world fades. You return to where it started. Again.",
     }[race] ?? "You have been defeated.";
-    Sessions.sendSystem(socket, npc?.deathByRace?.[race] ?? "Your enemy is defeated.");
+    Sessions.sendSystem(socket, msg);
 
-    const room = World.rooms[sess.room];
-    if (npc?.dropTable && room) {
-        if (!room.items) room.items = [];
-        npc.dropTable.forEach(itemId => {
-            room.items.push({ id: `${itemId}_${Date.now()}`, defId: itemId, originRoom: sess.room });
-        });
-    }
+    // Respawn: clear hands, reset hp, send to start room
+    acc.hands = { left: null, right: null };
+    sess.hp   = 100;
+    acc.hp    = 100;
+    sess.room = START_ROOM;
+    acc.lastRoom = START_ROOM;
+    sess.wielding = {};
+    Accounts.save();
 
-    if (npc?.xpReward) {
-        const acc = Accounts.data[sess.loginId];
-        if (acc) {
-            acc.xp = (acc.xp ?? 0) + npc.xpReward;
-            Accounts.save();
-            Sessions.sendSystem(socket, `+${npc.xpReward} XP`);
-        }
-    }
-
-    if (npc) npc.state = 'hidden';
+    socket.send(JSON.stringify({ type: 'hands', hands: acc.hands }));
+    socket.send(JSON.stringify({ type: 'stats', hp: 100 }));
+    socket.send(JSON.stringify({ type: 'wielding', wielding: {} }));
 
     const Room = require('../core/room');
-    Room.sendRoom(socket, sess.room);
+    Room.sendRoom(socket, START_ROOM);
 }
 
-// ── EXPORTED GUARD ────────────────────────────────────────
+// ── RETREAT ───────────────────────────────────────────────
+// melee → ranged (90%)
+// ranged → notice (90%, ends combat lock — player free to move/flee)
+// notice — no retreat action, player just moves rooms to escape
+function retreat(socket, sess) {
+    const cs = getCS(sess);
+    if (!cs || cs.stage === STAGE.IDLE || cs.stage === STAGE.NOTICE) {
+        Sessions.sendSystem(socket, "You're not in combat.");
+        return;
+    }
+
+    const acc  = Accounts.data[sess.loginId];
+    const race = acc?.race ?? 'human';
+
+    clearAllTimers(sess.loginId);
+
+    const success = Math.random() < 0.9; // 90% chance
+
+    if (cs.stage === STAGE.MELEE) {
+        if (success) {
+            setStage(sess, STAGE.RANGED);
+            push(socket, sess);
+            const msg = {
+                goblin: "You wrench yourself back. Still in range. Still trouble.",
+                human:  "You disengage. You have a moment.",
+                elf:    "You create space. Use it well.",
+            }[race] ?? "You retreat to ranged distance.";
+            Sessions.sendSystem(socket, msg);
+            // NPC re-closes
+            _advanceTimers[sess.loginId] = setTimeout(() => {
+                if (socket.readyState === 1) npcAdvanceToMelee(socket, sess);
+            }, 3000);
+        } else {
+            const msg = {
+                goblin: "You try to pull back. It won't let you.",
+                human:  "You move to disengage — it presses harder.",
+                elf:    "You reach for distance. It denies you.",
+            }[race] ?? "You fail to retreat.";
+            Sessions.sendSystem(socket, msg);
+            // Still in melee — NPC gets a free hit
+            _advanceTimers[sess.loginId] = setTimeout(() => {
+                if (socket.readyState === 1) startNpcAttackLoop(socket, sess);
+            }, 500);
+        }
+
+    } else if (cs.stage === STAGE.RANGED) {
+        if (success) {
+            // Back to notice — combat lock ends, player free to move
+            setStage(sess, STAGE.NOTICE);
+            push(socket, sess);
+            const msg = {
+                goblin: "You back off. It watches. Not done with you.",
+                human:  "You create distance. It holds position. For now.",
+                elf:    "You disengage. The tension remains.",
+            }[race] ?? "You retreat. It watches.";
+            Sessions.sendSystem(socket, msg);
+            // NPC re-advances after pause
+            _advanceTimers[sess.loginId] = setTimeout(() => {
+                if (socket.readyState === 1) {
+                    if (sess.room === cs.roomId) npcAdvanceToRanged(socket, sess);
+                }
+            }, 4000);
+        } else {
+            const msg = {
+                goblin: "You scramble back — it cuts you off.",
+                human:  "You try to create distance. It matches you.",
+                elf:    "You reach for space. It refuses you.",
+            }[race] ?? "You fail to retreat.";
+            Sessions.sendSystem(socket, msg);
+            // Stays at ranged, NPC re-closes sooner
+            _advanceTimers[sess.loginId] = setTimeout(() => {
+                if (socket.readyState === 1) npcAdvanceToMelee(socket, sess);
+            }, 1500);
+        }
+    }
+}
+
+// ── HANDLE ROOM CHANGE (called from room.js on move) ─────
+// If player moves during notice: end combat (NPC stays)
+// If player moves during ranged/melee: shouldn't happen (movement blocked)
+function onPlayerMove(sess) {
+    const cs = getCS(sess);
+    if (!cs || cs.stage === STAGE.IDLE) return;
+    if (cs.stage === STAGE.NOTICE) {
+        clearAllTimers(sess.loginId);
+        endCS(sess);
+    }
+    // ranged/melee movement is blocked by requireIdle — belt and suspenders
+}
+
+// ── EXPORTS ───────────────────────────────────────────────
 module.exports = {
     name: 'engage',
     aliases: ['attack', 'retreat', 'flee'],
@@ -363,16 +554,20 @@ module.exports = {
         const acc = ctx.accounts[sess.loginId];
         if (!acc) return;
         const lower = cmdName || 'engage';
-        if (lower === 'engage') startCombat(socket, sess, arg?.trim().toLowerCase() || 'goblin');
-        else if (lower === 'attack') playerAttack(socket, sess, arg?.trim().toLowerCase() || acc.hands.left || acc.hands.right);
-        else if (lower === 'retreat' || lower === 'flee') retreat(socket, sess);
+        if (lower === 'engage')
+            startCombat(socket, sess, arg?.trim().toLowerCase() || 'goblin');
+        else if (lower === 'attack')
+            playerAttack(socket, sess, arg?.trim().toLowerCase() || acc.hands.left || acc.hands.right);
+        else if (lower === 'retreat' || lower === 'flee')
+            retreat(socket, sess);
     },
 
-    // Exported for server.js direct calls and look.js
     startCombat,
     playerAttack,
+    npcNotice,
     retreat,
     requireIdle,
+    onPlayerMove,
     getCS,
     STAGE,
 };
