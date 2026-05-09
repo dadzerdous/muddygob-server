@@ -72,6 +72,17 @@ function clearAllTimers(loginId) {
     clearAttack(loginId);
 }
 
+// ── COMBAT MESSAGE HELPERS ───────────────────────────────
+function sendHit(socket, msg) {
+    socket.send(JSON.stringify({ type: 'system', msg, msgType: 'hit' }));
+}
+function sendMiss(socket, msg) {
+    socket.send(JSON.stringify({ type: 'system', msg, msgType: 'miss' }));
+}
+function sendEvent(socket, msg) {
+    socket.send(JSON.stringify({ type: 'system', msg, msgType: 'event' }));
+}
+
 // ── PUSH STATE TO CLIENT ──────────────────────────────────
 function push(socket, sess) {
     const cs = getCS(sess);
@@ -191,7 +202,7 @@ function startNpcAttackLoop(socket, sess) {
             const miss = npc?.missByRace?.[race]
                 ?? { goblin: "It lunges — you sidestep.", human: "It swings wide. Lucky.", elf: "Its strike finds nothing." }[race]
                 ?? `The ${cs.npcId} misses.`;
-            Sessions.sendSystem(socket, miss);
+            sendMiss(socket, miss);
             return;
         }
 
@@ -232,7 +243,7 @@ function playerAttack(socket, sess, weaponId) {
             human:  "You strike — but miss.",
             elf:    "Your blow finds no mark.",
         }[race] ?? "You miss.";
-        Sessions.sendSystem(socket, miss);
+        sendMiss(socket, miss);
         return;
     }
 
