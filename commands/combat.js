@@ -347,16 +347,19 @@ function playerAttack(socket, sess, weaponId) {
     const room = World.rooms[sess.room];
     const npc  = getNpcDef(room, cs.npcId);
 
-    // weaponId may be null/undefined for unarmed
-    const def     = weaponId && weaponId !== 'unarmed' ? World.items[weaponId] : null;
-    const isArmed = !!def;
+    // weaponId may be 'unarmed-left', 'unarmed-right', 'unarmed', or a real item id
+    const isUnarmed = !weaponId || weaponId.startsWith('unarmed');
+    const def       = isUnarmed ? null : World.items[weaponId];
+    const isArmed   = !!def;
 
-    // Determine which hand fired (for hit color)
-    const hand = acc.hands.left === weaponId  ? 'left'
+    // Determine which hand fired
+    const hand = weaponId === 'unarmed-right' ? 'right'
+               : weaponId === 'unarmed-left'  ? 'left'
+               : acc.hands.left  === weaponId ? 'left'
                : acc.hands.right === weaponId ? 'right'
-               : !weaponId || weaponId === 'unarmed'
-                   ? (!acc.hands.left ? 'left' : 'right')
-               : 'left'; // fallback
+               : 'left';
+
+    const weaponEmoji = def?.emoji ?? (hand === 'right' ? '🤚' : '✋');
 
     if (!hitRoll(0.15)) {
         const miss = isArmed
@@ -369,8 +372,6 @@ function playerAttack(socket, sess, weaponId) {
     const dmg = isArmed ? rollDamage(def) : 1;
     const dmgType = def?.damage?.[0]?.type ?? (isArmed ? 'physical' : 'blunt');
     cs.npcHp = Math.max(0, cs.npcHp - dmg);
-
-    const weaponEmoji = def?.emoji ?? (isArmed ? '⚔️' : (hand === 'left' ? '✋' : '🤚'));
 
     const hit = isArmed
         ? ({ goblin: `${weaponEmoji} You hit for ${dmg} ${dmgType}.`, human: `${weaponEmoji} You strike for ${dmg} ${dmgType}.`, elf: `${weaponEmoji} ${dmg} ${dmgType}. Clean.` }[race] ?? `${weaponEmoji} ${dmg} damage.`)
