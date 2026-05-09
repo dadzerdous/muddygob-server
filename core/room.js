@@ -70,13 +70,9 @@ function resetRoom(roomId, triggerSocket) {
     if (room.items) room.items = room.items.filter(i => !i.originRoom || i.originRoom === roomId);
     ensureAmbientItems(room);
 
-    // Reset NPC objects back to hidden
-    if (room.objects) {
-        for (const obj of Object.values(room.objects)) {
-            if (obj.npcRef || obj.type === 'npc') {
-                obj.state = 'hidden';
-            }
-        }
+    // Reset NPC state (future combat)
+    if (room.npcs) {
+        room.npcs.forEach(npc => { npc.state = 'idle'; });
     }
 
     // Notify players in room
@@ -204,13 +200,9 @@ function sendRoom(socket, id) {
 
     // ---------- SCENERY + NPCs ----------
     if (room.objects) {
-        for (const [key, rawObj] of Object.entries(room.objects)) {
+        for (const [key, obj] of Object.entries(room.objects)) {
             if (seenIds.has(key)) continue;
             seenIds.add(key);
-
-            // Resolve npcRef — merge NPC def with room-level overrides (state)
-            const npcDef = rawObj.npcRef ? World.npcs[rawObj.npcRef] : null;
-            const obj    = npcDef ? { ...npcDef, ...rawObj, type: 'npc' } : rawObj;
 
             const isHidden = obj.state === 'hidden';
 
@@ -317,6 +309,25 @@ function sendRoom(socket, id) {
 
         socket.send(JSON.stringify(payload));
         console.log("✅ ROOM SENT:", id);
+
+        // Aggressive NPCs — auto-engage player after a delay
+        if (combatants.length > 0 && sess.state === 'ready') {
+            const Combat = require('../commands/combat');
+            const cs = Combat.getCS(sess);
+            // Only trigger if not already in combat
+            if (!cs || cs.stage === 'idle') {
+                const npcId = combatants[0].id;
+                setTimeout(() => {
+                    // Re-check player is still in room and not already in combat
+                    const stillHere = Sessions.get(socket)?.room === id;
+                    const stillIdle = !Combat.getCS(sess)?.stage || Combat.getCS(sess).stage === 'idle';
+                    if (stillHere && stillIdle) {
+                        Combat.startCombat(socket, sess, npcId);
+                    }
+                }, 3000); // 3 second grace period before goblin notices
+            }
+        }
+
     } catch (err) {
         console.error("🔥 sendRoom() failed:", err);
     }
