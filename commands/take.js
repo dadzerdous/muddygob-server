@@ -9,7 +9,8 @@ module.exports = {
 
     execute(ctx, arg) {
         const World = require('../core/world');
-        const { socket, sess, sendSystem, sendRoom, accounts, world } = ctx;
+        const { socket, sess, sendSystem, sendRoom, accounts, world, broadcastToRoomExcept } = ctx;
+        const Sessions = require('../core/sessions');
         const Accounts = require("../core/accounts");
 
         const acc = accounts[sess.loginId];
@@ -61,7 +62,10 @@ module.exports = {
         Accounts.save();
 
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
-        sendSystem(socket, `You pick up the ${itemName}.`);
+        const displayName = World.items[defId]?.name || defId;
+        sendSystem(socket, `You pick up the ${displayName}.`);
+        broadcastToRoomExcept(sess.room, `${acc.name} picks up the ${displayName}.`, socket);
+        Sessions.broadcastRoomToOthers(sess.room, socket, sendRoom);
         sendRoom(socket, sess.room);
     }
 };

@@ -33,7 +33,9 @@ module.exports = {
         acc.inventory.push(itemName);
         Accounts.save();
 
+        const World = require('../core/world');
+        const displayName = World.items?.[itemName]?.name || itemName;
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
-        socket.send(JSON.stringify({type:'system',msg:`You tuck away the ${itemName}.`,msgType:'action'}));
+        socket.send(JSON.stringify({type:'system',msg:`You tuck away the ${displayName}.`,msgType:'action'}));
     }
 };

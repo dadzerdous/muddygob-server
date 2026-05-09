@@ -55,8 +55,11 @@ module.exports = {
                 // Race-specific craft message
                 const msg = recipe.msgByRace?.[race] || recipe.msg || `You combine the ${item} and ${otherItem} into a ${recipe.result}.`;
                 sendSystem(socket, msg);
+                const resultName = World.items[recipe.result]?.name || recipe.result;
+                broadcastToRoomExcept(sess.room, `${acc.name} crafts a ${resultName}.`, socket);
 
                 // Re-render room so item descriptions update
+                Sessions.broadcastRoomToOthers(sess.room, socket, sendRoom);
                 sendRoom(socket, sess.room);
                 return;
             }

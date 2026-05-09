@@ -9,6 +9,7 @@ module.exports = {
     execute(ctx, arg) {
         const { socket, sess, accounts, world, sendSystem, sendRoom, broadcastToRoomExcept } = ctx;
         const Accounts = require("../core/accounts");
+        const Sessions = require("../core/sessions");
 
         const acc = accounts[sess.loginId];
         if (!acc) return;
@@ -33,11 +34,13 @@ module.exports = {
                 if (!Array.isArray(room.items)) room.items = [];
                 const alreadyHere = room.items.some(i => i.defId === itemName);
                 if (alreadyHere) return sendSystem(socket, `There's already a ${itemName} here.`);
-                room.items.push({ id: `${itemName}_${Date.now()}`, defId: itemName });
+                room.items.push({ id: `${itemName}_${Date.now()}`, defId: itemName, originRoom: 'dropped' });
                 acc.inventory = acc.inventory.filter(i => i !== itemName);
                 Accounts.save();
-                socket.send(JSON.stringify({type:'system',msg:`You drop the ${itemName}.`,msgType:'action'}));
-                broadcastToRoomExcept(sess.room, `${acc.name} drops a ${itemName}.`, socket);
+                const displayName1 = world.items?.[itemName]?.name || itemName;
+                socket.send(JSON.stringify({type:'system',msg:`You drop the ${displayName1}.`,msgType:'action'}));
+                broadcastToRoomExcept(sess.room, `${acc.name} drops a ${displayName1}.`, socket);
+                Sessions.broadcastRoomToOthers(sess.room, socket, sendRoom);
                 sendRoom(socket, sess.room);
                 return;
             }
@@ -55,19 +58,22 @@ module.exports = {
             return sendSystem(socket, `There's already a ${itemName} here.`);
         }
 
-        // Drop into room
+        // Drop into room — mark as dropped so it's not treated as native
         room.items.push({
-            id:    `${itemName}_${Date.now()}`,
-            defId: itemName,
+            id:         `${itemName}_${Date.now()}`,
+            defId:      itemName,
+            originRoom: 'dropped',
         });
 
         // Free hand
         acc.hands[slot] = null;
         Accounts.save();
 
+        const displayName2 = world.items?.[itemName]?.name || itemName;
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
-        socket.send(JSON.stringify({type:'system',msg:`You drop the ${itemName}.`,msgType:'action'}));
-        broadcastToRoomExcept(sess.room, `${acc.name} drops a ${itemName}.`, socket);
+        socket.send(JSON.stringify({type:'system',msg:`You drop the ${displayName2}.`,msgType:'action'}));
+        broadcastToRoomExcept(sess.room, `${acc.name} drops a ${displayName2}.`, socket);
+        Sessions.broadcastRoomToOthers(sess.room, socket, sendRoom);
         sendRoom(socket, sess.room);
     }
 };
