@@ -11,22 +11,6 @@
         "emoji": "🟦",
         "roomDesc": "A still pond sits at the centre of the clearing, its surface unbroken.",
         "lookText": "A still pond with a single fish that seems to be laughing at you."
-      },
-      "fake_coin": {
-        "type": "scenery",
-        "state": "hidden",
-        "name": "coin",
-        "emoji": "🪙",
-        "roomDescByRace": {
-          "goblin": "A coin glints on the ground near the pond. You want it immediately.",
-          "human": "A coin lies on the ground, recently arrived.",
-          "elf": "Something small and metallic rests here, newly placed."
-        },
-        "lookText": "It's fake. You can tell. You still want it.",
-        "actions": [
-          "look",
-          "take"
-        ]
       }
     },
     "ambient": {
@@ -62,6 +46,10 @@
             "item": "fake_coin",
             "owner": "actor",
             "onGround": true
+          },
+          {
+            "do": "revealNpc",
+            "npc": "fake_coin"
           },
           {
             "do": "removeFromHands",
