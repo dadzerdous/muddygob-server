@@ -327,6 +327,25 @@ function sendRoom(socket, id) {
 
         socket.send(JSON.stringify(payload));
         console.log("✅ ROOM SENT:", id);
+
+        // Auto-notice: if room has a visible aggressive NPC and player is not already in combat,
+        // trigger npcNotice after a short delay (so room renders first)
+        const cs = sess.combatState;
+        const alreadyFighting = cs && cs.stage !== 'idle';
+        if (!alreadyFighting && room.objects) {
+            for (const [npcKey, obj] of Object.entries(room.objects)) {
+                if (obj.state !== 'hidden' && obj.aggressive === true) {
+                    setTimeout(() => {
+                        if (socket.readyState !== 1) return;
+                        try {
+                            const Combat = require('../commands/combat');
+                            Combat.npcNotice(socket, sess, npcKey);
+                        } catch(e) { console.error('[AGGRO]', e); }
+                    }, 800);
+                    break; // one NPC at a time
+                }
+            }
+        }
     } catch (err) {
         console.error("🔥 sendRoom() failed:", err);
     }
