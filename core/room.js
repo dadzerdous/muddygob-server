@@ -316,6 +316,7 @@ function sendRoom(socket, id) {
             objects:          objectList,
             totalDiscoverable,
             combatants,
+            combatStage:      sess.combatState?.stage ?? 'idle',
         };
 
         console.log("📦 ROOM PAYLOAD:", {
