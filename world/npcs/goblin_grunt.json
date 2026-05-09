@@ -4,9 +4,9 @@
     "type": "npc",
     "emoji": "👺",
     "combatant": true,
-    "hp": 15,
-    "damage": 2,
-    "atbSpeed": 3000,
+    "hp": 30,
+    "damage": 3,
+    "atbSpeed": 3500,
     "xpReward": 10,
     "dropTable": [
       "note_from_goblin"
