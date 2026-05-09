@@ -59,9 +59,16 @@ function fireOutcome(socket, sess, acc, race, outcome) {
             const room = World.rooms[sess.room];
             if (!room.items) room.items = [];
 
-            // If room has a matching hidden object, reveal it too
+            // If room has a matching hidden object, reveal it and mark discovered
             if (room.objects?.[item]?.state === 'hidden') {
                 room.objects[item].state = 'visible';
+                // Auto-discover for the actor
+                if (!acc.discovered) acc.discovered = {};
+                if (!acc.discovered[sess.room]) acc.discovered[sess.room] = [];
+                if (!acc.discovered[sess.room].includes(item)) {
+                    acc.discovered[sess.room].push(item);
+                    Accounts.save();
+                }
             }
 
             if (owner === 'actor' && !onGround) {

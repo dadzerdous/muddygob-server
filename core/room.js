@@ -188,11 +188,18 @@ function sendRoom(socket, id) {
         ? [...room.text]
         : ["You see nothing special."];
 
-    // Per-player discovery set for this room
+    // Per-player discovery — per-room PLUS globally known item ids
     const playerDisc = (acc?.discovered && !Array.isArray(acc.discovered))
         ? (acc.discovered[id] || [])
         : [];
-    const discSet = new Set(playerDisc);
+    // Build global known set (all item ids discovered anywhere)
+    const globalKnown = new Set();
+    if (acc?.discovered && !Array.isArray(acc.discovered)) {
+        for (const roomDiscs of Object.values(acc.discovered)) {
+            for (const itemId of roomDiscs) globalKnown.add(itemId);
+        }
+    }
+    const discSet = new Set([...playerDisc, ...globalKnown]);
 
     // Build object list + append each object's roomDesc to description
     const objectList = [];
@@ -200,13 +207,9 @@ function sendRoom(socket, id) {
 
     // ---------- SCENERY + NPCs ----------
     if (room.objects) {
-        for (const [key, rawObj] of Object.entries(room.objects)) {
+        for (const [key, obj] of Object.entries(room.objects)) {
             if (seenIds.has(key)) continue;
             seenIds.add(key);
-
-            // Resolve npcRef — merge NPC def with room-level state override
-            const npcDef = rawObj.npcRef ? World.npcs[rawObj.npcRef] : null;
-            const obj    = npcDef ? { ...npcDef, ...rawObj, type: 'npc' } : rawObj;
 
             const isHidden = obj.state === 'hidden';
 
@@ -214,13 +217,13 @@ function sendRoom(socket, id) {
             if (!isHidden) {
                 const roomDesc = (obj.roomDescByRace && race && obj.roomDescByRace[race])
                     || obj.roomDesc
-                    || (obj.name ? `A ${obj.name} is here.` : null);
+                    || null;
                 if (roomDesc) desc.push(roomDesc);
             }
 
             objectList.push({
                 id:         key,
-                name:       obj.name || key,
+                name:       obj.name || key,   // use explicit name if set
                 type:       obj.type || "scenery",
                 emoji:      isHidden ? "" : (obj.emoji || ""),
                 actions:    isHidden ? [] : (obj.actions || ["look"]),
@@ -313,30 +316,6 @@ function sendRoom(socket, id) {
 
         socket.send(JSON.stringify(payload));
         console.log("✅ ROOM SENT:", id);
-
-        // Aggressive NPCs — auto-engage player after a delay
-        if (combatants.length > 0 && sess.state === 'ready') {
-            try {
-                const Combat = require('../commands/combat');
-                const cs = sess.combatState;
-                // Only auto-aggro if NPC is marked aggressive and player not in combat
-                if (!cs || cs.stage === 'idle') {
-                    const npcId = combatants[0].id;
-                    const npcObj = room.objects?.[npcId];
-                    const npcDef2 = npcObj?.npcRef ? World.npcs[npcObj.npcRef] : npcObj;
-                    if (npcDef2?.aggressive !== false) { // aggressive by default
-                        setTimeout(() => {
-                            const stillHere = Sessions.get(socket)?.room === id;
-                            const currentStage = sess.combatState?.stage;
-                            if (stillHere && (!currentStage || currentStage === 'idle')) {
-                                Combat.startCombat(socket, sess, npcId);
-                            }
-                        }, 3000);
-                    }
-                }
-            } catch(e) { console.error('[AGGRO]', e); }
-        }
-
     } catch (err) {
         console.error("🔥 sendRoom() failed:", err);
     }
