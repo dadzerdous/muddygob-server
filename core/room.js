@@ -70,9 +70,12 @@ function resetRoom(roomId, triggerSocket) {
     if (room.items) room.items = room.items.filter(i => !i.originRoom || i.originRoom === roomId);
     ensureAmbientItems(room);
 
-    // Reset NPC state (future combat)
-    if (room.npcs) {
-        room.npcs.forEach(npc => { npc.state = 'idle'; });
+    // Reset NPC visibility — re-hide all objects that have a state field
+    // room.objects is where NPCs live, not room.npcs (which doesn't exist)
+    if (room.objects) {
+        for (const obj of Object.values(room.objects)) {
+            if ('state' in obj) obj.state = 'hidden';
+        }
     }
 
     // Notify players in room
@@ -286,10 +289,15 @@ function sendRoom(socket, id) {
         }
     }
 
-    // Only count native objects toward discovery total (scenery, native items, NPCs)
-    const totalDiscoverable = objectList.filter(o =>
-        o.type === 'scenery' || o.type === 'npc' || o.native
-    ).length;
+    // totalDiscoverable is STATIC — counts objects defined in the room template,
+    // not live instances. This prevents the count shrinking when items are picked up.
+    // Scenery + NPCs from room.objects + ambient item types from room.ambient config.
+    const totalDiscoverable = (() => {
+        let count = 0;
+        if (room.objects) count += Object.keys(room.objects).length;
+        if (room.ambient) count += Object.keys(room.ambient).length;
+        return count;
+    })();
 
     // Build combatants list — visible NPCs with combatant:true
     const combatants = objectList.filter(o =>
@@ -348,6 +356,12 @@ function handleMove(socket, sess, cmd, arg) {
     acc.lastRoom = newRoom;
     Accounts.save();
     Sessions.broadcastToRoomExcept(newRoom, `${actor} enters from ${oppositeDirection(dir)}.`, socket);
+
+    // If player was in Notice stage, clear it — they left the room
+    try {
+        const Combat = require('../commands/combat');
+        Combat.onPlayerMove(sess);
+    } catch(e) {}
 
     // Reset scheduling — cancel for room being entered, schedule for room being left
     // (only schedule if no players remain)
