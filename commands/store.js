@@ -34,6 +34,6 @@ module.exports = {
         Accounts.save();
 
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
-        sendSystem(socket, `You tuck away the ${itemName}.`);
+        socket.send(JSON.stringify({ type:"system", msg:`You tuck away the ${itemName}.`, msgType:"action" }));
     }
 };

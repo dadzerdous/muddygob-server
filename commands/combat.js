@@ -146,7 +146,7 @@ function startCombat(socket, sess, npcId) {
 
     // NPC auto-advances after 4s
     clearAdvance(sess.loginId);
-    _advanceTimers[sess.loginId] = setTimeout(() => npcAdvance(socket, sess), 4000);
+    _advanceTimers[sess.loginId] = setTimeout(() => { if (socket.readyState === 1) npcAdvance(socket, sess); }, 4000);
 }
 
 // ── NPC ADVANCE ──────────────────────────────────────────
@@ -167,7 +167,7 @@ function npcAdvance(socket, sess) {
         Sessions.sendSystem(socket, msg);
 
         clearAdvance(sess.loginId);
-        _advanceTimers[sess.loginId] = setTimeout(() => npcAdvance(socket, sess), 4000);
+        _advanceTimers[sess.loginId] = setTimeout(() => { if (socket.readyState === 1) npcAdvance(socket, sess); }, 4000);
 
     } else if (cs.stage === STAGE.APPROACH) {
         setStage(sess, STAGE.MELEE);
@@ -285,14 +285,14 @@ function retreat(socket, sess) {
         push(socket, sess);
         const msg = { goblin: "You back off. Still close. Still dangerous.", human: "You disengage. Approach range.", elf: "You create distance. Briefly safer." }[race] ?? "You retreat to approach range.";
         Sessions.sendSystem(socket, msg);
-        _advanceTimers[sess.loginId] = setTimeout(() => npcAdvance(socket, sess), 3000);
+        _advanceTimers[sess.loginId] = setTimeout(() => { if (socket.readyState === 1) npcAdvance(socket, sess); }, 3000);
 
     } else if (cs.stage === STAGE.APPROACH) {
         setStage(sess, STAGE.NOTICE);
         push(socket, sess);
         const msg = { goblin: "You're out of range. It watches.", human: "You back away. It watches. Not done.", elf: "You disengage. The tension holds." }[race] ?? "You retreat to notice range.";
         Sessions.sendSystem(socket, msg);
-        _advanceTimers[sess.loginId] = setTimeout(() => npcAdvance(socket, sess), 4000);
+        _advanceTimers[sess.loginId] = setTimeout(() => { if (socket.readyState === 1) npcAdvance(socket, sess); }, 4000);
 
     } else if (cs.stage === STAGE.NOTICE) {
         if (Math.random() > 0.3) {
@@ -309,7 +309,7 @@ function retreat(socket, sess) {
         } else {
             const msg = { goblin: "You try to run. It's faster.", human: "You bolt — but it cuts you off.", elf: "You move to leave. It moves faster." }[race] ?? "You fail to flee.";
             Sessions.sendSystem(socket, msg);
-            setTimeout(() => npcAdvance(socket, sess), 1500);
+            setTimeout(() => { if (socket.readyState === 1) npcAdvance(socket, sess); }, 1500);
         }
     }
 }

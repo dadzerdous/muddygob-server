@@ -17,11 +17,6 @@ module.exports = {
         // Normalize: "fake coin" → "fake_coin"
         const normalize = s => s?.toLowerCase().replace(/\s+/g, '_');
         const itemName = normalize(arg);
-        try {
-            const Combat = require('../commands/combat');
-            if (Combat.requireIdle && !Combat.requireIdle(sess, socket, 'take')) return;
-        } catch(e) {}
-
         if (!itemName) return sendSystem(socket, "Take what?");
 
         // Check both hands and inventory for duplicates
@@ -65,7 +60,7 @@ module.exports = {
         Accounts.save();
 
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
-        sendSystem(socket, `You pick up the ${itemName}.`);
+        socket.send(JSON.stringify({ type:"system", msg:`You pick up the ${itemName}.`, msgType:"action" }));
         sendRoom(socket, sess.room);
     }
 };

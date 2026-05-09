@@ -10,11 +10,6 @@ module.exports = {
         const { socket, sess, accounts, world, sendSystem, sendRoom, broadcastToRoomExcept } = ctx;
         const Accounts = require("../core/accounts");
 
-        try {
-            const Combat = require('../commands/combat');
-            if (Combat.requireIdle && !Combat.requireIdle(sess, socket, 'drop')) return;
-        } catch(e) {}
-
         const acc = accounts[sess.loginId];
         if (!acc) return;
 
@@ -41,7 +36,7 @@ module.exports = {
                 room.items.push({ id: `${itemName}_${Date.now()}`, defId: itemName });
                 acc.inventory = acc.inventory.filter(i => i !== itemName);
                 Accounts.save();
-                sendSystem(socket, `You drop the ${itemName}.`);
+                socket.send(JSON.stringify({ type:"system", msg:`You drop the ${itemName}.`, msgType:"action" }));
                 broadcastToRoomExcept(sess.room, `${acc.name} drops a ${itemName}.`, socket);
                 sendRoom(socket, sess.room);
                 return;
@@ -71,7 +66,7 @@ module.exports = {
         Accounts.save();
 
         socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
-        sendSystem(socket, `You drop the ${itemName}.`);
+        socket.send(JSON.stringify({ type:"system", msg:`You drop the ${itemName}.`, msgType:"action" }));
         broadcastToRoomExcept(sess.room, `${acc.name} drops a ${itemName}.`, socket);
         sendRoom(socket, sess.room);
     }
