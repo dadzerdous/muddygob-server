@@ -289,10 +289,10 @@ function sendRoom(socket, id) {
         }
     }
 
-    // totalDiscoverable is STATIC — counts objects defined in the room template,
-    // not live instances. This prevents the count shrinking when items are picked up.
-    // Scenery + NPCs from room.objects + ambient item types from room.ambient config.
-    const totalDiscoverable = (() => {
+    // totalDiscoverable — use hardcoded value if room defines it (for event-spawned items
+    // like the fake_coin in forest-g3 that aren't in objects or ambient),
+    // otherwise calculate from room template definition
+    const totalDiscoverable = room.totalDiscoverable ?? (() => {
         let count = 0;
         if (room.objects) count += Object.keys(room.objects).length;
         if (room.ambient) count += Object.keys(room.ambient).length;
