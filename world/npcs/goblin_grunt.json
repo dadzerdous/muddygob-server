@@ -1,0 +1,81 @@
+{
+  "goblin_grunt": {
+    "name": "goblin",
+    "type": "npc",
+    "emoji": "👺",
+    "combatant": true,
+    "hp": 15,
+    "damage": 2,
+    "atbSpeed": 3000,
+    "xpReward": 10,
+    "dropTable": ["note_from_goblin"],
+
+    "roomDescByRace": {
+      "goblin": "One of your kind — a goblin — crouches in the darkness, watching.",
+      "human":  "A goblin crouches in the darkness. You can feel it watching.",
+      "elf":    "A goblin stirs in the dark. Low. Patient. Hungry."
+    },
+
+    "lookTextByRace": {
+      "goblin": "Smaller than you expected. Meaner than you hoped. It sizes you up the same way you're sizing it up.",
+      "human":  "A goblin. Ragged, quick-eyed, and very aware of you.",
+      "elf":    "A goblin. It watches you with the focused attention of something that has decided you are interesting."
+    },
+
+    "combatLookByHp": {
+      "full": {
+        "goblin": "It hasn't broken a sweat. Eyes sharp, posture low. This one knows what it's doing.",
+        "human":  "It looks completely uninjured. Alert, focused. This won't be easy.",
+        "elf":    "It is unhurt. Its attention is entirely on you."
+      },
+      "half": {
+        "goblin": "Dark stains on its side. Still moving though. Still mean.",
+        "human":  "It's wounded but fighting through it. Blood on its flank.",
+        "elf":    "It carries injury but hasn't slowed. Dangerous still."
+      },
+      "low": {
+        "goblin": "It's struggling. Breathing hard. One more good hit.",
+        "human":  "It can barely hold its stance. Nearly done.",
+        "elf":    "It is close to the end. It knows this. So do you."
+      }
+    },
+
+    "noticeByRace": {
+      "goblin": "It locks eyes with you. Neither of you moves. Yet.",
+      "human":  "It locks eyes with you. You feel its intent.",
+      "elf":    "Its eyes find yours. The air between you changes."
+    },
+
+    "approachByRace": {
+      "goblin": "It takes a step toward you. Deliberate.",
+      "human":  "It moves closer. You can smell it now.",
+      "elf":    "It advances. Unhurried. Certain."
+    },
+
+    "meleeByRace": {
+      "goblin": "It's on you. No more thinking.",
+      "human":  "It lunges. You're in melee range.",
+      "elf":    "It closes the gap. Combat has begun."
+    },
+
+    "hitByRace": {
+      "goblin": "It hits you for {dmg}. ({hp} hp)",
+      "human":  "It strikes for {dmg} damage. ({hp} hp)",
+      "elf":    "It finds a gap. {dmg} damage. ({hp} hp)"
+    },
+
+    "missByRace": {
+      "goblin": "It lunges — you sidestep.",
+      "human":  "It swings wide. Lucky.",
+      "elf":    "Its strike finds nothing."
+    },
+
+    "deathByRace": {
+      "goblin": "It drops. Not quite pride. Not quite guilt.",
+      "human":  "The goblin falls. The silence returns.",
+      "elf":    "It collapses. You stand over it, uncertain what you feel."
+    },
+
+    "actions": ["look", "engage"]
+  }
+}
