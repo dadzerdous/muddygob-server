@@ -70,9 +70,13 @@ function resetRoom(roomId, triggerSocket) {
     if (room.items) room.items = room.items.filter(i => !i.originRoom || i.originRoom === roomId);
     ensureAmbientItems(room);
 
-    // Reset NPC state (future combat)
-    if (room.npcs) {
-        room.npcs.forEach(npc => { npc.state = 'idle'; });
+    // Reset NPC objects back to hidden
+    if (room.objects) {
+        for (const obj of Object.values(room.objects)) {
+            if (obj.npcRef || obj.type === 'npc') {
+                obj.state = 'hidden';
+            }
+        }
     }
 
     // Notify players in room
@@ -200,9 +204,13 @@ function sendRoom(socket, id) {
 
     // ---------- SCENERY + NPCs ----------
     if (room.objects) {
-        for (const [key, obj] of Object.entries(room.objects)) {
+        for (const [key, rawObj] of Object.entries(room.objects)) {
             if (seenIds.has(key)) continue;
             seenIds.add(key);
+
+            // Resolve npcRef — merge NPC def with room-level overrides (state)
+            const npcDef = rawObj.npcRef ? World.npcs[rawObj.npcRef] : null;
+            const obj    = npcDef ? { ...npcDef, ...rawObj, type: 'npc' } : rawObj;
 
             const isHidden = obj.state === 'hidden';
 
