@@ -307,10 +307,11 @@ function startNpcAttackLoop(socket, sess) {
         const race = acc?.race ?? 'human';
 
         if (!hitRoll(0.2)) {
-            const miss = npc?.missByRace?.[race]
+            const npcEmoji = npc?.emoji ?? '👾';
+            const missText = npc?.missByRace?.[race]
                 ?? { goblin: "It lunges — you sidestep.", human: "It swings wide. Lucky.", elf: "Its strike finds nothing." }[race]
                 ?? `The ${cs.npcId} misses.`;
-            sendMiss(socket, miss);
+            sendMiss(socket, `${npcEmoji} ${missText}`);
             return;
         }
 
@@ -362,10 +363,10 @@ function playerAttack(socket, sess, weaponId) {
     const weaponEmoji = def?.emoji ?? (hand === 'right' ? '🤚' : '✋');
 
     if (!hitRoll(0.15)) {
-        const miss = isArmed
+        const missText = isArmed
             ? ({ goblin: "You swing. It ducks. Nothing lands.", human: "You strike — but miss.", elf: "Your blow finds no mark." }[race] ?? "You miss.")
             : ({ goblin: "Your fist finds air.", human: "You swing wide. Empty.", elf: "Your strike is too slow." }[race] ?? "You miss.");
-        sendMiss(socket, miss);
+        sendMiss(socket, `${weaponEmoji} ${missText}`);
         return;
     }
 
