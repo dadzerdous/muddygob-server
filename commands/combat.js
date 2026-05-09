@@ -111,7 +111,6 @@ function startCombat(socket, sess, npcId) {
 
     // Auto-wield whatever's in hands on engage
     if (!sess.wielding) sess.wielding = {};
-    const acc = Accounts.data[sess.loginId];
     if (acc?.hands?.left)  sess.wielding[acc.hands.left]  = true;
     if (acc?.hands?.right) sess.wielding[acc.hands.right] = true;
     socket.send(JSON.stringify({ type: 'wielding', wielding: sess.wielding }));
