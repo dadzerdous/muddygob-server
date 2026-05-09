@@ -59,6 +59,11 @@ function fireOutcome(socket, sess, acc, race, outcome) {
             const room = World.rooms[sess.room];
             if (!room.items) room.items = [];
 
+            // If room has a matching hidden object, reveal it too
+            if (room.objects?.[item]?.state === 'hidden') {
+                room.objects[item].state = 'visible';
+            }
+
             if (owner === 'actor' && !onGround) {
                 // Put directly in player's hands
                 const slot = Accounts.emptyHand(acc);
