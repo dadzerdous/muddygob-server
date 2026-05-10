@@ -44,30 +44,25 @@ module.exports = {
         }
 
         // ---------------------------------------
-        // 1) LOOK AT HELD ITEM
+        // 1) LOOK AT HELD ITEM — send detailed stat card
         // ---------------------------------------
-        if (acc.heldItem === objName) {
-            const def = World.items[objName];
-            if (def) {
-                const desc =
-                    (def.textByRace && def.textByRace[race]) ||
-                    def.text ||
-                    `You examine the ${objName}.`;
-                return sendSystem(socket, desc);
-            }
-        }
+        const inHands = acc.hands.left === objName || acc.hands.right === objName;
+        const inBag   = Array.isArray(acc.inventory) && acc.inventory.includes(objName);
 
-        // ---------------------------------------
-        // 2) LOOK AT BACKPACK ITEM
-        // ---------------------------------------
-        if (Array.isArray(acc.inventory) && acc.inventory.includes(objName)) {
+        if (inHands || inBag) {
             const def = World.items[objName];
             if (def) {
-                const desc =
-                    (def.textByRace && def.textByRace[race]) ||
-                    def.text ||
-                    `You examine the ${objName}.`;
-                return sendSystem(socket, desc);
+                const flavour = (def.textByRace && def.textByRace[race]) || def.text || null;
+                const weaponXP = acc.weaponXP?.[objName] ?? 0;
+                socket.send(JSON.stringify({
+                    type:     'item_detail',
+                    itemId:   objName,
+                    def,
+                    flavour,
+                    weaponXP,
+                    race,
+                }));
+                return;
             }
         }
 
