@@ -230,8 +230,9 @@ function startCombat(socket, sess, npcId) {
     };
     push(socket, sess);
 
-    const msg = npc?.approachByRace?.[race]
-        ?? { goblin: "You step toward it. It tenses.", human: "You advance. It readies itself.", elf: "You move in. It watches every step." }[race]
+    // Player-initiated engage — different from NPC advancing on player
+    const msg = npc?.engageByRace?.[race]
+        ?? { goblin: "You step toward it. It tenses. No going back.", human: "You advance on it. It readies itself.", elf: "You move in. Every muscle in it tightens." }[race]
         ?? `You engage the ${npcId}.`;
     sendEvent(socket, msg);
 
@@ -374,6 +375,12 @@ function playerAttack(socket, sess, weaponId) {
     const isUnarmed = !weaponId || weaponId.startsWith('unarmed');
     const def       = isUnarmed ? null : World.items[weaponId];
     const isArmed   = !!def;
+
+    // Non-weapon items (shields, armor) can't attack
+    if (isArmed && def.baseDamage === 0 && !def.damage?.length) {
+        Sessions.sendSystem(socket, `The ${def.name || weaponId} isn't a weapon.`);
+        return;
+    }
 
     // Determine which hand fired
     const hand = weaponId === 'unarmed-right' ? 'right'
