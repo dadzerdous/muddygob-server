@@ -449,6 +449,18 @@ function npcDeath(socket, sess, npc, acc, race) {
     const wielded = Object.keys(sess.wielding ?? {}).filter(id => sess.wielding[id]);
     wielded.forEach(wId => awardWeaponXP(socket, sess, acc, wId, 5));
 
+    // Show weaponXP summary in log
+    if (acc.weaponXP && Object.keys(acc.weaponXP).length) {
+        const summary = Object.entries(acc.weaponXP).map(([id, xp]) => {
+            const def   = World.items[id];
+            const name  = def?.name ?? id;
+            const emoji = def?.emoji ?? '';
+            const level = weaponLevel(xp);
+            return `${emoji} ${name} Lv${level} (${xp}xp)`;
+        }).join(' · ');
+        Sessions.sendSystem(socket, `Weapon XP: ${summary}`);
+    }
+
     // Re-hide NPC in room
     if (room?.objects?.[cs.npcId]) {
         room.objects[cs.npcId].state = 'hidden';
