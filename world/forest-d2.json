@@ -50,7 +50,7 @@
         ],
         "combatant": true,
         "aggressive": true,
-        "hp": 15,
+        "hp": 8,
         "damage": 2,
         "xpReward": 10,
         "dropTable": [
@@ -82,7 +82,7 @@
     },
     "background": "forest-clearing.png",
     "instance": "tutorial",
-    "resetTime": 60,
+    "resetTime": 10,
     "itemDecayTime": 300,
     "resetMsgByRace": {
       "goblin": "The dark swallows everything. Even you feel less certain you exist.",
