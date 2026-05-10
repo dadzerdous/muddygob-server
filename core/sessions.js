@@ -116,6 +116,23 @@ function broadcastRoomToOthers(roomId, exceptSocket, sendRoomFn) {
     console.log('[BROADCAST ROOM]', roomId, '→', count, 'other players');
 }
 
+// -----------------------------------------------
+// Who command
+// -----------------------------------------------
+function doWho(socket) {
+    const names = [];
+    for (const [, sess] of sessions.entries()) {
+        if (sess.state === "ready") {
+            const acc = Accounts.data[sess.loginId];
+            if (acc) names.push(`${acc.name} (${acc.race})`);
+        }
+    }
+    if (names.length <= 1) {
+        return sendSystem(socket, "No other presences stir in this world.");
+    }
+    sendSystem(socket, "Others here:\n" + names.map(n => `• ${n}`).join("\n"));
+}
+
 module.exports = {
     sessions,
     create,
@@ -124,5 +141,6 @@ module.exports = {
     sendSystem,
     broadcastPlayerCount,
     broadcastToRoomExcept,
-    broadcastRoomToOthers
+    broadcastRoomToOthers,
+    doWho,
 };
