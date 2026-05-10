@@ -1,33 +1,34 @@
 {
   "shiny_shield": {
+    "id": "shiny_shield",
     "name": "Shiny Shield",
-    "emoji": "✨🛡️",
+    "emoji": "🛡️",
+    "glowClass": "shiny",
     "category": "armor",
     "slot": "hand",
-    "takeable": true,
     "throwable": false,
     "wieldable": true,
-    "combinations": 0,
-    "actions": {
-      "room":      ["look", "take"],
-      "hand":      ["look", "store", "drop"],
-      "inventory": ["look", "retrieve", "drop"]
-    },
-    "defense": [
-      { "type": "blunt", "amount": 3 },
-      { "type": "sharp", "amount": 2 }
-    ],
-    "special": {
-      "dazzle": {
-        "chance": 0.25,
-        "effect": "blind",
-        "duration": 2
+    "baseDamage": 0,
+    "skills": [
+      {
+        "id": "dazzle",
+        "label": "Dazzle",
+        "emoji": "✨",
+        "minLevel": 1,
+        "manaCost": 15,
+        "cooldownMs": 8000,
+        "description": "Flash the coin. 25% chance to blind — enemy misses next attack."
       }
-    },
+    ],
     "textByRace": {
       "goblin": "The coin catches everything. You are the most dangerous thing in this forest and you look incredible.",
       "human": "The false coin catches light like a real one. Enemies will see it before they see you.",
       "elf": "Beauty from deception. You are troubled by how much you like it."
+    },
+    "actions": {
+      "room": ["look","take"],
+      "hand": ["look","store","drop"],
+      "inventory": ["look","retrieve","drop"]
     }
   }
 }
