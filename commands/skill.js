@@ -113,7 +113,8 @@ function executeDazzle(socket, sess, acc, cs, def, skill) {
     Sessions.sendSystem(socket, useMsg);
     Sessions.broadcastToRoomExcept(sess.room, `${acc.name} flashes something blinding.`, socket);
 
-    if (Math.random() < 0.25) {
+// 40% chance to blind for testing (tune to 25% for balance later)
+    if (Math.random() < 0.40) {
         // Success — set blind flag on combat state
         cs.npcBlinded = true;
         const hitMsg = {
