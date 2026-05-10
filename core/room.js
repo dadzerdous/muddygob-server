@@ -376,6 +376,8 @@ function handleMove(socket, sess, cmd, arg) {
     acc.lastRoom = newRoom;
     Accounts.save();
     Sessions.broadcastToRoomExcept(newRoom, `${actor} enters from ${oppositeDirection(dir)}.`, socket);
+    // Refresh room for players already here so they see the new arrival
+    Sessions.broadcastRoomToOthers(newRoom, socket, sendRoom);
 
     // If player was in Notice stage, clear it — they left the room
     try {
