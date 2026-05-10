@@ -306,6 +306,14 @@ function startNpcAttackLoop(socket, sess) {
         const acc  = Accounts.data[sess.loginId];
         const race = acc?.race ?? 'human';
 
+        // Dazzle blind — NPC misses this attack, flag cleared
+        if (cs.npcBlinded) {
+            cs.npcBlinded = false;
+            const npcEmoji = npc?.emoji ?? '👾';
+            sendMiss(socket, `${npcEmoji} It swings blind. Misses completely.`);
+            return;
+        }
+
         if (!hitRoll(0.2)) {
             const npcEmoji = npc?.emoji ?? '👾';
             const missText = npc?.missByRace?.[race]
@@ -384,6 +392,8 @@ function playerAttack(socket, sess, weaponId) {
         return;
     }
 
+    // Award weapon XP on hit
+    awardWeaponXP(socket, sess, acc, weaponId);
     push(socket, sess);
 }
 
@@ -419,6 +429,10 @@ function npcDeath(socket, sess, npc, acc, race) {
         Accounts.save();
         Sessions.sendSystem(socket, `+${npc.xpReward} XP`);
     }
+
+    // Kill bonus weapon XP — award to whatever was wielded
+    const wielded = Object.keys(sess.wielding ?? {}).filter(id => sess.wielding[id]);
+    wielded.forEach(wId => awardWeaponXP(socket, sess, acc, wId, 5));
 
     // Re-hide NPC in room
     if (room?.objects?.[cs.npcId]) {
@@ -556,6 +570,39 @@ function onPlayerMove(sess) {
         endCS(sess);
     }
     // ranged/melee movement is blocked by requireIdle — belt and suspenders
+}
+
+// ── WEAPON XP ─────────────────────────────────────────────
+function weaponLevel(xp) {
+    if (xp >= 200) return 5;
+    if (xp >= 120) return 4;
+    if (xp >=  60) return 3;
+    if (xp >=  20) return 2;
+    return 1;
+}
+
+function awardWeaponXP(socket, sess, acc, weaponId, bonus = 0) {
+    const key = (!weaponId || weaponId.startsWith('unarmed')) ? 'unarmed' : weaponId;
+    if (!acc.weaponXP) acc.weaponXP = {};
+    const prev = acc.weaponXP[key] ?? 0;
+    const next = prev + 1 + bonus;
+    acc.weaponXP[key] = next;
+    Accounts.save();
+
+    const prevLevel = weaponLevel(prev);
+    const nextLevel = weaponLevel(next);
+
+    socket.send(JSON.stringify({ type: 'weapon_xp', weaponXP: acc.weaponXP }));
+
+    if (nextLevel > prevLevel) {
+        const def  = World.items[key];
+        const name = def?.name ?? key;
+        Sessions.sendSystem(socket, `✦ ${name} level ${nextLevel}! New skills may be available.`);
+        const newSkill = (def?.skills ?? []).find(s => s.minLevel === nextLevel);
+        if (newSkill) {
+            Sessions.sendSystem(socket, `✦ Skill unlocked: ${newSkill.emoji} ${newSkill.label} — ${newSkill.description}`);
+        }
+    }
 }
 
 // ── EXPORTS ───────────────────────────────────────────────
