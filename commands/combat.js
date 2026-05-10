@@ -376,12 +376,6 @@ function playerAttack(socket, sess, weaponId) {
     const def       = isUnarmed ? null : World.items[weaponId];
     const isArmed   = !!def;
 
-    // Non-weapon items (shields, armor) can't attack
-    if (isArmed && def.baseDamage === 0 && !def.damage?.length) {
-        Sessions.sendSystem(socket, `The ${def.name || weaponId} isn't a weapon.`);
-        return;
-    }
-
     // Determine which hand fired
     const hand = weaponId === 'unarmed-right' ? 'right'
                : weaponId === 'unarmed-left'  ? 'left'
