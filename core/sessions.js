@@ -6,7 +6,7 @@ const sessions = new Map(); // socket → session
 const Accounts = require("./accounts");
 
 // -----------------------------------------------
-// Regen tick (energy + stamina)
+// Regen tick (energy + mana)
 // -----------------------------------------------
 function regenTick() {
     for (const [sock, sess] of sessions.entries()) {
@@ -19,18 +19,18 @@ function regenTick() {
             changed = true;
         }
 
-        if (sess.stamina < 100) {
-            sess.stamina = Math.min(100, sess.stamina + 1);
+        if (sess.mana < 100) {
+            sess.mana = Math.min(100, sess.mana + 1);
             changed = true;
         }
 
         if (changed) {
-            Accounts.updateVitals(sess.loginId, sess.energy, sess.stamina);
+            Accounts.updateVitals(sess.loginId, sess.energy, sess.mana);
             sock.send(JSON.stringify({
-                type:    "stats",
-                energy:  sess.energy,
-                stamina: sess.stamina,
-                hp:      sess.hp ?? 100,
+                type:   "stats",
+                energy: sess.energy,
+                mana:   sess.mana,
+                hp:     sess.hp ?? 100,
             }));
         }
     }
@@ -48,8 +48,9 @@ function create(socket, startRoom) {
         room:        startRoom,
         hp:          100,
         energy:      100,
-        stamina:     100,
+        mana:        100,
         wielding:    {},
+        skillCooldowns: {},   // itemId → timestamp when cooldown expires
         combatState: { stage: 'idle', npcId: null, npcHp: null, playerHp: null, roomId: null },
     });
 }
@@ -66,55 +67,53 @@ function get(socket) {
 // Messaging helpers
 // -----------------------------------------------
 function sendSystem(socket, msg) {
-    socket.send(JSON.stringify({ type: "system", msg }));
+    socket.send(JSON.stringify({
+        type: "system",
+        msg
+    }));
 }
 
 // -----------------------------------------------
-// Player count broadcast
+// Player count broadcast (USED BY server.js)
 // -----------------------------------------------
 function broadcastPlayerCount() {
-    const count = [...sessions.values()].filter(s => s.state === "ready").length;
+    const count = [...sessions.values()]
+        .filter(s => s.state === "ready").length;
+
     for (const [sock] of sessions.entries()) {
-        sock.send(JSON.stringify({ type: "players_online", count }));
+        sock.send(JSON.stringify({
+            type: "players_online",
+            count
+        }));
     }
 }
-
 function broadcastToRoomExcept(roomId, msg, exceptSocket) {
     for (const [sock, sess] of sessions.entries()) {
-        if (sock !== exceptSocket && sess.state === "ready" && sess.room === roomId) {
-            sock.send(JSON.stringify({ type: "system", msg }));
+        if (
+            sock !== exceptSocket &&
+            sess.state === "ready" &&
+            sess.room === roomId
+        ) {
+            sock.send(JSON.stringify({
+                type: "system",
+                msg
+            }));
         }
     }
 }
 
+// -----------------------------------------------
 // Send a fresh room packet to all players in a room except one socket
 function broadcastRoomToOthers(roomId, exceptSocket, sendRoomFn) {
     let count = 0;
     for (const [sock, sess] of sessions.entries()) {
         if (sock !== exceptSocket && sess.room === roomId && sess.state === 'ready') {
+            console.log('[BROADCAST ROOM] sending to', sess.loginId, 'in', roomId);
             sendRoomFn(sock, roomId);
             count++;
         }
     }
     console.log('[BROADCAST ROOM]', roomId, '→', count, 'other players');
-}
-
-// -----------------------------------------------
-// Who command — FIXED: was missing from sessions.js,
-// only existed in the dead theme.js file
-// -----------------------------------------------
-function doWho(socket) {
-    const names = [];
-    for (const [, sess] of sessions.entries()) {
-        if (sess.state === "ready") {
-            const acc = Accounts.data[sess.loginId];
-            if (acc) names.push(acc.name);
-        }
-    }
-    if (names.length <= 1) {
-        return sendSystem(socket, "No other presences stir in this world.");
-    }
-    sendSystem(socket, "Others breathing in this world:\n" + names.map(n => `• ${n}`).join("\n"));
 }
 
 module.exports = {
@@ -125,6 +124,5 @@ module.exports = {
     sendSystem,
     broadcastPlayerCount,
     broadcastToRoomExcept,
-    broadcastRoomToOthers,
-    doWho,
+    broadcastRoomToOthers
 };

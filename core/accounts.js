@@ -17,8 +17,16 @@ if (fs.existsSync(ACCOUNT_PATH)) {
                 acc.hands = { left: acc.heldItem || null, right: null };
                 delete acc.heldItem;
             }
-            if (!acc.inventory) acc.inventory = [];
+            if (!acc.inventory)  acc.inventory  = [];
             if (!acc.discovered || Array.isArray(acc.discovered)) acc.discovered = {};
+            // Migrate stamina → mana
+            if (acc.stamina !== undefined && acc.mana === undefined) {
+                acc.mana = acc.stamina;
+                delete acc.stamina;
+            }
+            if (acc.mana    === undefined) acc.mana    = 100;
+            if (acc.weaponXP === undefined) acc.weaponXP = {};
+            if (acc.xp       === undefined) acc.xp       = 0;
         }
     } catch { accounts = {}; }
 } else {
@@ -60,16 +68,16 @@ function activateSession(socket, sess, acc, loginId, startRoom, sendRoom) {
     sess.loginId = loginId;
     sess.room    = room;
     sess.energy  = acc.energy  ?? 100;
-    sess.stamina = acc.stamina ?? 100;
+    sess.mana    = acc.mana    ?? 100;
     sess.state   = "ready";
 
     socket.send(JSON.stringify({ type: "session_token", token: loginId }));
     socket.send(JSON.stringify({ type: "player_state",  player: acc }));
     socket.send(JSON.stringify({
-        type: "stats",
-        level:   acc.level   ?? 1,
-        energy:  sess.energy,
-        stamina: sess.stamina,
+        type:   "stats",
+        level:  acc.level  ?? 1,
+        energy: sess.energy,
+        mana:   sess.mana,
     }));
 
     // Send both hands
@@ -101,8 +109,10 @@ function create(socket, sess, data, startRoom, sendRoom) {
         room:       startRoom,
         lastRoom:   startRoom,
         energy:     100,
-        stamina:    100,
+        mana:       100,
         level:      1,
+        xp:         0,
+        weaponXP:   {},
         hands:              { left: null, right: null },
         inventory:          [],
         discovered:         {},
@@ -138,11 +148,11 @@ function resume(socket, sess, data, startRoom, sendRoom) {
 }
 
 // ── VITALS ───────────────────────────────────────────────
-function updateVitals(loginId, energy, stamina) {
+function updateVitals(loginId, energy, mana) {
     const acc = accounts[loginId];
     if (!acc) return;
-    acc.energy  = energy;
-    acc.stamina = stamina;
+    acc.energy = energy;
+    acc.mana   = mana;
     save();
 }
 
