@@ -188,8 +188,22 @@ function npcNotice(socket, sess, npcId) {
 function startCombat(socket, sess, npcId) {
     const cs = getCS(sess);
 
-    // Already in ranged/melee with this NPC — ignore
-    if (cs?.npcId === npcId && (cs?.stage === STAGE.RANGED || cs?.stage === STAGE.MELEE)) return;
+    // Already in ranged/melee with this NPC — if ranged, skip to melee
+    if (cs?.npcId === npcId) {
+        if (cs?.stage === STAGE.MELEE) return; // already there
+        if (cs?.stage === STAGE.RANGED) {
+            // Player chose to engage — skip straight to melee
+            clearAdvance(sess.loginId);
+            npcAdvanceToMelee(socket, sess);
+            return;
+        }
+        if (cs?.stage === STAGE.NOTICE) {
+            // Player engaging during notice — jump to ranged then melee
+            clearAdvance(sess.loginId);
+            npcAdvanceToRanged(socket, sess);
+            return;
+        }
+    }
 
     const room = World.rooms[sess.room];
     const npc  = getNpcDef(room, npcId);
