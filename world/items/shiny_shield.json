@@ -8,7 +8,8 @@
     "slot": "hand",
     "throwable": false,
     "wieldable": true,
-    "baseDamage": 0,
+    "baseDamage": 1,
+    "damage": [{ "type": "blunt", "amount": 1 }],
     "skills": [
       {
         "id": "dazzle",
