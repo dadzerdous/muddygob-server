@@ -29,7 +29,7 @@
         "type": "scenery",
         "emoji": "🪧",
         "roomDesc": "A weathered wooden sign leans against a tree at the pond's edge.",
-        "lookText": "The sign is old but the carving is deliberate:\n\n  +---------------------------+\n  |                           |\n  |   DON'T THROW THINGS.     |\n  |   it scares the fish.     |\n  |                           |\n  |         - Management      |\n  +---------------------------+\n\nSomeone has crossed out 'Management' and written 'the fish' underneath.",
+        "lookText": "Old carving, deliberate hand:\n\n+-----------------+\n| DON'T THROW     |\n| THINGS.         |\n| it scares       |\n| the fish.       |\n|   - the fish    |\n+-----------------+\n\n'Management' is scratched out.",
         "actions": ["look"]
       },
       "mouse": {
