@@ -19,14 +19,13 @@ if (fs.existsSync(ACCOUNT_PATH)) {
             }
             if (!acc.inventory)  acc.inventory  = [];
             if (!acc.discovered || Array.isArray(acc.discovered)) acc.discovered = {};
-            // Migrate stamina → mana
             if (acc.stamina !== undefined && acc.mana === undefined) {
-                acc.mana = acc.stamina;
-                delete acc.stamina;
+                acc.mana = acc.stamina; delete acc.stamina;
             }
-            if (acc.mana    === undefined) acc.mana    = 100;
+            if (acc.mana     === undefined) acc.mana     = 100;
             if (acc.weaponXP === undefined) acc.weaponXP = {};
             if (acc.xp       === undefined) acc.xp       = 0;
+            if (acc.flags    === undefined) acc.flags     = {};
         }
     } catch { accounts = {}; }
 } else {
@@ -68,16 +67,16 @@ function activateSession(socket, sess, acc, loginId, startRoom, sendRoom) {
     sess.loginId = loginId;
     sess.room    = room;
     sess.energy  = acc.energy  ?? 100;
-    sess.mana    = acc.mana    ?? 100;
+    sess.stamina = acc.stamina ?? 100;
     sess.state   = "ready";
 
     socket.send(JSON.stringify({ type: "session_token", token: loginId }));
     socket.send(JSON.stringify({ type: "player_state",  player: acc }));
     socket.send(JSON.stringify({
-        type:   "stats",
-        level:  acc.level  ?? 1,
-        energy: sess.energy,
-        mana:   sess.mana,
+        type: "stats",
+        level:   acc.level   ?? 1,
+        energy:  sess.energy,
+        stamina: sess.stamina,
     }));
 
     // Send both hands
@@ -87,6 +86,12 @@ function activateSession(socket, sess, acc, loginId, startRoom, sendRoom) {
     if (acc.discovered && !Array.isArray(acc.discovered)) {
         socket.send(JSON.stringify({ type: "discovered", perRoom: acc.discovered }));
     }
+
+    // Send quest state
+    try {
+        const { sendQuestState } = require('./events');
+        sendQuestState(socket, acc);
+    } catch(e) {}
 
     console.log("[ACCOUNTS] activateSession → sendRoom:", room);
     sendRoom(socket, room);
@@ -113,6 +118,7 @@ function create(socket, sess, data, startRoom, sendRoom) {
         level:      1,
         xp:         0,
         weaponXP:   {},
+        flags:      {},
         hands:              { left: null, right: null },
         inventory:          [],
         discovered:         {},
@@ -148,11 +154,11 @@ function resume(socket, sess, data, startRoom, sendRoom) {
 }
 
 // ── VITALS ───────────────────────────────────────────────
-function updateVitals(loginId, energy, mana) {
+function updateVitals(loginId, energy, stamina) {
     const acc = accounts[loginId];
     if (!acc) return;
-    acc.energy = energy;
-    acc.mana   = mana;
+    acc.energy  = energy;
+    acc.stamina = stamina;
     save();
 }
 

@@ -126,9 +126,73 @@ function fireOutcome(socket, sess, acc, race, outcome) {
             break;
         }
 
+        case 'setFlag': {
+            const { flag, value = true } = outcome;
+            if (!flag) break;
+            if (!acc.flags) acc.flags = {};
+            if (acc.flags[flag] === value) break; // already set, no-op
+            acc.flags[flag] = value;
+            Accounts.save();
+            // Evaluate quests and send updated state to client
+            const questState = evaluateQuests(acc);
+            if (questState) {
+                socket.send(JSON.stringify({ type: 'quest_state', quests: questState }));
+            }
+            console.log(`[FLAG] ${acc.name}: ${flag} = ${value}`);
+            break;
+        }
+
         default:
             console.warn("[EVENT] unknown outcome:", outcome.do);
     }
 }
 
-module.exports = { checkEvent };
+// ── QUEST EVALUATOR ──────────────────────────────────────
+// Loads quests.json once, evaluates which steps are done based on acc.flags
+let _quests = null;
+function loadQuests() {
+    if (_quests) return _quests;
+    try {
+        const path = require('path');
+        const fs   = require('fs');
+        const p    = path.join(__dirname, '../world/data/quests.json');
+        _quests = JSON.parse(fs.readFileSync(p, 'utf8'));
+    } catch(e) {
+        console.warn('[QUESTS] Failed to load quests.json:', e.message);
+        _quests = {};
+    }
+    return _quests;
+}
+
+function evaluateQuests(acc) {
+    const quests = loadQuests();
+    if (!quests || !Object.keys(quests).length) return null;
+    const flags  = acc.flags ?? {};
+
+    return Object.entries(quests).map(([id, q]) => {
+        const steps = (q.steps ?? []).map(step => ({
+            id:      step.id,
+            label:   step.label,
+            flavour: step.flavour ?? '',
+            done:    !!(flags[step.flag]),
+        }));
+        const allDone    = steps.every(s => s.done);
+        const currentIdx = steps.findIndex(s => !s.done);
+        return {
+            id,
+            title:   q.title,
+            steps,
+            complete: allDone,
+            currentStep: currentIdx >= 0 ? currentIdx : steps.length - 1,
+        };
+    });
+}
+
+function sendQuestState(socket, acc) {
+    const questState = evaluateQuests(acc);
+    if (questState) {
+        socket.send(JSON.stringify({ type: 'quest_state', quests: questState }));
+    }
+}
+
+module.exports = { checkEvent, evaluateQuests, sendQuestState };
