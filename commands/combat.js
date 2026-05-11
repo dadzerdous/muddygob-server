@@ -434,7 +434,7 @@ function npcDeath(socket, sess, npc, acc, race) {
                 room.items.push({
                     id:         `${itemId}_${Date.now()}`,
                     defId:      itemId,
-                    originRoom: sess.room,
+                    originRoom: 'dropped',  // not native — won't count toward discoveries
                 });
                 Sessions.sendSystem(socket, "Something small falls to the ground.");
             }
