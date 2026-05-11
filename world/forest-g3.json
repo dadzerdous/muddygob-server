@@ -2,22 +2,101 @@
   "forest-g3": {
     "title": "Forest Clearing",
     "text": [
-      "A quiet forest clearing filled with drifting silver fog.",
-      "A small pond reflects the faint sky between branches."
+      "A clearing opens in the dark wood, wrapped in silver fog that drifts but never fully settles.",
+      "A small pond sits at the centre. Something moves beneath its surface — a fish, watching.",
+      "To the north, the fog thickens. Something shifts in it. Probably nothing."
     ],
     "objects": {
       "pond": {
         "type": "scenery",
         "emoji": "🟦",
-        "roomDesc": "A still pond sits at the centre of the clearing, its surface unbroken.",
-        "lookText": "A still pond with a single fish that seems to be laughing at you."
+        "roomDesc": "The pond is still except where it isn't. The fish knows you're here.",
+        "lookText": "Clear enough to see the bottom. The fish is down there, doing slow circles, absolutely judging you.",
+        "actions": ["look", "throw"]
+      },
+      "fog": {
+        "type": "scenery",
+        "emoji": "🌫️",
+        "roomDesc": "A wall of fog rolls in slowly from the north, thicker than it should be.",
+        "lookTextByRace": {
+          "goblin": "You squint into it. Something moves. Low. Patient. You know that shape. You've been that shape.",
+          "human": "You stare into the fog. Shadows shift where shadows shouldn't. Something is in there, waiting for a reason to come out.",
+          "elf": "The fog has texture. Intent, almost. Something breathes inside it that isn't the wind."
+        },
+        "actions": ["look"]
+      },
+      "sign": {
+        "type": "scenery",
+        "emoji": "🪧",
+        "roomDesc": "A weathered wooden sign leans against a tree at the pond's edge.",
+        "lookText": "The sign is old but the carving is deliberate:\n\n  +---------------------------+\n  |                           |\n  |   DON'T THROW THINGS.     |\n  |   it scares the fish.     |\n  |                           |\n  |         - Management      |\n  +---------------------------+\n\nSomeone has crossed out 'Management' and written 'the fish' underneath.",
+        "actions": ["look"]
+      },
+      "mouse": {
+        "type": "npc",
+        "state": "hidden",
+        "emoji": "🐭",
+        "aggressive": false,
+        "roomDescByRace": {
+          "goblin": "A small mouse has crept out of the bushes. It freezes when it sees you, vibrating with indecision.",
+          "human": "A mouse scurries out from the undergrowth and pauses, nose twitching, pretending it meant to be here.",
+          "elf": "A mouse has emerged from the brush. It sits very still, as if stillness will make it invisible."
+        },
+        "lookTextByRace": {
+          "goblin": "Tiny. Fast. Probably delicious. It's looking at you like it's already planning its escape route.",
+          "human": "A small brown mouse. Alert eyes, twitching whiskers. It's deciding whether you're dangerous.",
+          "elf": "A mouse. Small life, large awareness. It knows exactly where you are."
+        },
+        "noticeByRace": {
+          "goblin": "The mouse locks eyes with you. Every muscle in it tenses.",
+          "human": "The mouse sees you properly for the first time. It goes very still.",
+          "elf": "The mouse becomes aware of you. The clearing feels smaller."
+        },
+        "approachByRace": {
+          "goblin": "It decides you're a threat. Fast little legs, faster than they look.",
+          "human": "It darts toward you — cornered, or just stupid.",
+          "elf": "It moves. Quickly. More intent than you expected from something so small."
+        },
+        "meleeByRace": {
+          "goblin": "It's on your boot. Tiny teeth, real commitment.",
+          "human": "It's biting your ankle. This is embarrassing for both of you.",
+          "elf": "It engages you with more dignity than the situation warrants."
+        },
+        "hitByRace": {
+          "goblin": "🐭 It bites. Barely. {dmg} damage. ({hp} hp)",
+          "human": "🐭 The mouse bites for {dmg}. ({hp} hp left.)",
+          "elf": "🐭 A small wound. {dmg} damage. ({hp} hp remaining.)"
+        },
+        "missByRace": {
+          "goblin": "🐭 It snaps at air. You're faster than a mouse, at least.",
+          "human": "🐭 It lunges and misses. Barely.",
+          "elf": "🐭 It strikes. Finds nothing."
+        },
+        "deathByRace": {
+          "goblin": "It drops. You feel something. You're not sure what.",
+          "human": "The mouse goes still. The clearing feels quieter.",
+          "elf": "It falls. A small life, ended. The pond doesn't care."
+        },
+        "combatant": true,
+        "hp": 3,
+        "damage": 1,
+        "atbSpeed": 4000,
+        "xpReward": 2,
+        "dropTable": ["mouse_fur"],
+        "dropChance": 0.4,
+        "actions": ["look", "engage"]
       }
     },
     "ambient": {
       "rock": {
         "max": 1,
-        "roomText": "A rock sits half-buried in the mud near the water's edge."
+        "roomText": "A smooth rock sits half-buried in the mud at the water's edge."
       }
+    },
+    "mouseTimer": {
+      "appearDelay": 20000,
+      "hideDelay": 35000,
+      "npcKey": "mouse"
     },
     "exits": {
       "north": "forest-d2",
@@ -25,7 +104,7 @@
     },
     "background": "forest-clearing.png",
     "instance": "tutorial",
-    "totalDiscoverable": 3,
+    "totalDiscoverable": 5,
     "totalEvents": 1,
     "events": {
       "throw_rock_pond": {
@@ -38,9 +117,9 @@
           {
             "do": "system",
             "msgByRace": {
-              "goblin": "The rock hits the water. A fish explodes out, absolutely furious, and spits something shiny at your feet before disappearing.",
-              "human": "The rock splashes in. A fish leaps out, apparently offended, spits a coin at your feet, and vanishes.",
-              "elf": "The stone disturbs the stillness. A fish rises, indignant, deposits something at your feet with great dignity, and leaves."
+              "goblin": "The rock hits the water with a satisfying crack. The fish explodes out, absolutely furious, and spits something shiny at your feet before disappearing in a huff.",
+              "human": "The rock splashes in. A fish leaps out — apparently offended — deposits something at your feet with great indignation, and vanishes.",
+              "elf": "The stone breaks the stillness. The fish rises, takes one look at you, leaves something at your feet with quiet contempt, and is gone."
             }
           },
           {
@@ -66,6 +145,17 @@
           }
         ]
       }
-    }
+    },
+    "ambientTexts": [
+      "The fish stirs the surface of the pond. Once. Then stops.",
+      "Something moves in the fog to the north. You tell yourself it's the wind.",
+      "The fog breathes. In. Out. Almost.",
+      "A ripple crosses the pond from no visible source.",
+      "The fish breaks the surface, looks directly at you, and submerges again.",
+      "The silver fog shifts. For a moment, something in it has a shape.",
+      "Silence, except for the water. And something that might be breathing.",
+      "The sign creaks. There is no wind."
+    ],
+    "ambientInterval": 18000
   }
 }
