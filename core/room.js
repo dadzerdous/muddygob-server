@@ -221,7 +221,7 @@ function sendRoom(socket, id) {
                 const roomDesc = (obj.roomDescByRace && race && obj.roomDescByRace[race])
                     || obj.roomDesc
                     || null;
-                if (roomDesc) desc.push(roomDesc);
+                if (roomDesc) desc.push('¶' + roomDesc); // ¶ = new paragraph marker
             }
 
             objectList.push({
@@ -309,6 +309,8 @@ function sendRoom(socket, id) {
             combatStage:      sess.combatState?.stage ?? 'idle',
             totalEvents:      room.totalEvents ?? 0,
             eventsTriggered:  acc?.eventsTriggered?.[id] ?? 0,
+            ambientTexts:     room.ambientTexts  ?? [],
+            ambientInterval:  room.ambientInterval ?? 20000,
         };
 
         console.log("📦 ROOM PAYLOAD:", {
@@ -340,31 +342,37 @@ function _scheduleMouse(roomId, room) {
     const npcKey = cfg.npcKey ?? 'mouse';
 
     function cycle() {
-        // Appear
         _mouseTimers[roomId] = { appear: setTimeout(() => {
             const obj = room.objects?.[npcKey];
             if (obj && obj.state === 'hidden') {
                 obj.state = 'visible';
-                // Broadcast room refresh to everyone in room
                 for (const [sock, sess] of Sessions.sessions.entries()) {
                     if (sess.room === roomId && sess.state === 'ready') {
+                        const acc  = Accounts.data[sess.loginId];
+                        const race = acc?.race ?? 'human';
+                        const msg  = {
+                            goblin: 'A mouse scurries out of the bushes. It freezes when it sees you.',
+                            human:  'A mouse appears from the undergrowth, nose twitching.',
+                            elf:    'A mouse emerges from the brush. It sits very still.',
+                        }[race] ?? 'A mouse has appeared.';
+                        Sessions.sendSystem(sock, msg);
                         sendRoom(sock, roomId);
                     }
                 }
             }
-            // Hide after hideDelay
             _mouseTimers[roomId].hide = setTimeout(() => {
                 const obj2 = room.objects?.[npcKey];
                 if (obj2 && obj2.state === 'visible') {
                     obj2.state = 'hidden';
                     for (const [sock, sess] of Sessions.sessions.entries()) {
                         if (sess.room === roomId && sess.state === 'ready') {
+                            Sessions.sendSystem(sock, 'The mouse disappears back into the bushes.');
                             sendRoom(sock, roomId);
                         }
                     }
                 }
                 _mouseTimers[roomId] = null;
-                cycle(); // schedule next appearance
+                cycle();
             }, cfg.hideDelay ?? 35000);
         }, cfg.appearDelay ?? 20000) };
     }
