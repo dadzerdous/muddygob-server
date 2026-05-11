@@ -3,8 +3,8 @@
     "title": "Forest Clearing",
     "text": [
       "A clearing opens in the dark wood, wrapped in silver fog that drifts but never fully settles.",
-      "A small pond sits at the centre. Something moves beneath its surface — a fish, watching.",
-      "To the north, the fog thickens. Something shifts in it. Probably nothing."
+      "A small pond sits at the centre. Something moves beneath its surface — a fish, watching. A sign leans against a nearby tree.",
+      "To the north, the silver fog thickens. Something shifts in it. Probably nothing."
     ],
     "objects": {
       "pond": {
@@ -14,10 +14,11 @@
         "lookText": "Clear enough to see the bottom. The fish is down there, doing slow circles, absolutely judging you.",
         "actions": ["look", "throw"]
       },
-      "fog": {
+      "silver_fog": {
         "type": "scenery",
         "emoji": "🌫️",
-        "roomDesc": "A wall of fog rolls in slowly from the north, thicker than it should be.",
+        "name": "silver fog",
+        "roomDesc": "A wall of silver fog rolls in slowly from the north, thicker than it should be.",
         "lookTextByRace": {
           "goblin": "You squint into it. Something moves. Low. Patient. You know that shape. You've been that shape.",
           "human": "You stare into the fog. Shadows shift where shadows shouldn't. Something is in there, waiting for a reason to come out.",
@@ -28,8 +29,8 @@
       "sign": {
         "type": "scenery",
         "emoji": "🪧",
-        "roomDesc": "A weathered wooden sign leans against a tree at the pond's edge.",
-        "lookText": "Old carving, deliberate hand:\n\n+-----------------+\n| DON'T THROW     |\n| THINGS.         |\n| it scares       |\n| the fish.       |\n|   - the fish    |\n+-----------------+\n\n'Management' is scratched out.",
+        "name": "sign",
+        "lookText": "____________________________\n| DON'T THROW THINGS |\n|      IN THE POND           |\n|    ~ ~ ~ 🐟 ~ ~ ~          |\n|__________________________|\n || || || || || /|| ||\\  /_||__||_\\",
         "actions": ["look"]
       },
       "mouse": {
