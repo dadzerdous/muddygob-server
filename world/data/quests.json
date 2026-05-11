@@ -1,0 +1,43 @@
+{
+  "tutorial": {
+    "title": "Into the Dark",
+    "steps": [
+      {
+        "id":      "took_rock",
+        "label":   "Pick up the rock",
+        "flag":    "took_rock",
+        "flavour": "You found a rock half-buried in the mud at the water's edge. It's heavier than it looks."
+      },
+      {
+        "id":      "threw_rock_pond",
+        "label":   "Throw it in the pond",
+        "flag":    "threw_rock_pond",
+        "flavour": "The rock hit the water. Something down there did not appreciate it."
+      },
+      {
+        "id":      "got_fake_coin",
+        "label":   "Find what the fish left",
+        "flag":    "got_fake_coin",
+        "flavour": "A coin — or something shaped like one. The metal is wrong. But it catches the light perfectly."
+      },
+      {
+        "id":      "threw_coin_fog",
+        "label":   "Throw it into the fog",
+        "flag":    "threw_coin_fog",
+        "flavour": "The coin disappeared into the dark. Then something moved. You are no longer alone in this part of the forest."
+      },
+      {
+        "id":      "goblin_appeared",
+        "label":   "Face what appears",
+        "flag":    "goblin_appeared",
+        "flavour": "It came out of the fog. Small. Mean-eyed. Absolutely certain it can take you."
+      },
+      {
+        "id":      "killed_goblin",
+        "label":   "Survive",
+        "flag":    "killed_goblin",
+        "flavour": "You stood your ground. It didn't. Whatever comes next, you've earned it."
+      }
+    ]
+  }
+}
