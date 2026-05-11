@@ -1,0 +1,26 @@
+{
+  "mouse_fur": {
+    "id": "mouse_fur",
+    "name": "Mouse Fur",
+    "emoji": "🪶",
+    "category": "material",
+    "slot": "none",
+    "hands": 1,
+    "stackable": true,
+    "unique": false,
+    "visible": true,
+    "stealable": true,
+    "throwable": false,
+    "baseDamage": 0,
+    "textByRace": {
+      "goblin": "Soft. Warm. You're not sure what it's for yet, but you kept it anyway.",
+      "human": "A small tuft of grey-brown fur. Clean, surprisingly. Could be useful for something.",
+      "elf": "Soft as silence. Something was alive in this. Now it's material."
+    },
+    "actions": {
+      "room": ["look", "take"],
+      "hand": ["look", "store", "drop"],
+      "inventory": ["look", "retrieve", "drop"]
+    }
+  }
+}
