@@ -259,8 +259,12 @@ function npcAdvanceToRanged(socket, sess) {
     const acc  = Accounts.data[sess.loginId];
     const race = acc?.race ?? 'human';
 
-    // Auto-wield on NPC advance
+    // Auto-wield on NPC advance — clean stale entries first
     if (!sess.wielding) sess.wielding = {};
+    // Remove wielding entries for items no longer in hands
+    Object.keys(sess.wielding).forEach(id => {
+        if (acc.hands.left !== id && acc.hands.right !== id) delete sess.wielding[id];
+    });
     if (acc?.hands?.left)  sess.wielding[acc.hands.left]  = true;
     if (acc?.hands?.right) sess.wielding[acc.hands.right] = true;
     socket.send(JSON.stringify({ type: 'wielding', wielding: sess.wielding }));
@@ -452,9 +456,15 @@ function npcDeath(socket, sess, npc, acc, race) {
         Sessions.sendSystem(socket, `+${npc.xpReward} XP`);
     }
 
-    // Kill bonus weapon XP — award to whatever was wielded
-    const wielded = Object.keys(sess.wielding ?? {}).filter(id => sess.wielding[id]);
-    wielded.forEach(wId => awardWeaponXP(socket, sess, acc, wId, 5));
+    // Kill bonus weapon XP — only items actually in hands right now
+    const inHands = [acc.hands?.left, acc.hands?.right].filter(Boolean);
+    const wielded = inHands.filter(id => sess.wielding?.[id]);
+    // If nothing wielded, award to unarmed
+    if (wielded.length === 0 && inHands.length === 0) {
+        awardWeaponXP(socket, sess, acc, null, 5); // unarmed kill bonus
+    } else {
+        wielded.forEach(wId => awardWeaponXP(socket, sess, acc, wId, 5));
+    }
 
     // Show weaponXP summary in log
     if (acc.weaponXP && Object.keys(acc.weaponXP).length) {
