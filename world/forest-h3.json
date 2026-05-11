@@ -37,6 +37,8 @@
     },
     "background": "forest-underbrush.png",
     "instance": "tutorial",
+    "totalDiscoverable": 4,
+    "totalEvents": 0,
     "ambientTexts": [
       "The brambles shift without wind.",
       "Something small scurries between the roots.",

@@ -37,6 +37,8 @@
     },
     "background": "forest-trail.png",
     "instance": "tutorial",
+    "totalDiscoverable": 4,
+    "totalEvents": 1,
     "events": {
       "use_hatchet_tree": {
         "trigger": {

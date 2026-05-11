@@ -25,6 +25,8 @@
     },
     "background": "forest-clearing.png",
     "instance": "tutorial",
+    "totalDiscoverable": 3,
+    "totalEvents": 1,
     "events": {
       "throw_rock_pond": {
         "trigger": {

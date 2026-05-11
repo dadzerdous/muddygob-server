@@ -82,6 +82,8 @@
     },
     "background": "forest-clearing.png",
     "instance": "tutorial",
+    "totalDiscoverable": 4,
+    "totalEvents": 1,
     "resetTime": 10,
     "itemDecayTime": 300,
     "resetMsgByRace": {
