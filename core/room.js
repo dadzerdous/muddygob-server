@@ -207,6 +207,7 @@ function sendRoom(socket, id) {
     // Build object list + append each object's roomDesc to description
     const objectList = [];
     const seenIds    = new Set();
+    const npcDescs   = []; // collected after ambient so NPCs appear last in desc
 
     // ---------- SCENERY + NPCs ----------
     if (room.objects) {
@@ -216,17 +217,17 @@ function sendRoom(socket, id) {
 
             const isHidden = obj.state === 'hidden';
 
-            // Hidden NPCs count toward total but don't inject roomDesc
+            // Collect NPC/scenery roomDesc — pushed to desc after ambient items
             if (!isHidden) {
                 const roomDesc = (obj.roomDescByRace && race && obj.roomDescByRace[race])
                     || obj.roomDesc
                     || null;
-                if (roomDesc) desc.push('¶' + roomDesc); // ¶ = new paragraph marker
+                if (roomDesc) npcDescs.push('¶' + roomDesc);
             }
 
             objectList.push({
                 id:         key,
-                name:       obj.name || key,   // use explicit name if set
+                name:       obj.name || key,
                 type:       obj.type || "scenery",
                 emoji:      isHidden ? "" : (obj.emoji || ""),
                 actions:    isHidden ? [] : (obj.actions || ["look"]),
@@ -251,9 +252,7 @@ function sendRoom(socket, id) {
 
             const isNative = !inst.originRoom || inst.originRoom === id;
 
-            // roomDesc for native items, droppedText for foreign
             if (isNative) {
-                // Check ambient config first, then item def, then generate fallback
                 const roomDesc = room.ambient?.[inst.defId]?.roomText
                     || (def.roomDescByRace && race && def.roomDescByRace[race])
                     || def.roomDesc
@@ -263,7 +262,6 @@ function sendRoom(socket, id) {
                     || `A ${def.name || inst.defId} lies here.`;
                 desc.push(roomDesc);
             } else {
-                // Foreign item dropped here — use droppedTextByRace, droppedText, or fallback
                 const droppedText = (def.droppedTextByRace && race && def.droppedTextByRace[race])
                     || def.droppedText
                     || `A ${def.name || inst.defId} lies here, left by someone passing through.`;
@@ -285,6 +283,9 @@ function sendRoom(socket, id) {
             });
         }
     }
+
+    // Push NPC/scenery roomDescs after ambient items so they appear last
+    npcDescs.forEach(d => desc.push(d));
 
     // Use hardcoded totalDiscoverable if set, else calculate from room definition
     const totalDiscoverable = calcTotalDiscoverable(room, id);
