@@ -425,17 +425,20 @@ function npcDeath(socket, sess, npc, acc, race) {
         ?? "Your enemy is defeated.";
     sendEvent(socket, msg);
 
-    // Drop table
+    // Drop table — respects dropChance per item
     if (npc?.dropTable?.length && room) {
         if (!room.items) room.items = [];
+        const chance = npc.dropChance ?? 1.0;
         npc.dropTable.forEach(itemId => {
-            room.items.push({
-                id:         `${itemId}_${Date.now()}`,
-                defId:      itemId,
-                originRoom: sess.room,
-            });
+            if (Math.random() < chance) {
+                room.items.push({
+                    id:         `${itemId}_${Date.now()}`,
+                    defId:      itemId,
+                    originRoom: sess.room,
+                });
+                Sessions.sendSystem(socket, "Something small falls to the ground.");
+            }
         });
-        Sessions.sendSystem(socket, "Something falls to the ground.");
     }
 
     // XP reward
