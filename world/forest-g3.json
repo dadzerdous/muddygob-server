@@ -25,7 +25,6 @@
     },
     "background": "forest-clearing.png",
     "instance": "tutorial",
-    "totalDiscoverable": 3,
     "events": {
       "throw_rock_pond": {
         "trigger": {
@@ -49,12 +48,16 @@
             "onGround": true
           },
           {
-            "do": "revealNpc",
-            "npc": "fake_coin"
-          },
-          {
             "do": "removeFromHands",
             "item": "rock"
+          },
+          {
+            "do": "setFlag",
+            "flag": "threw_rock_pond"
+          },
+          {
+            "do": "setFlag",
+            "flag": "got_fake_coin"
           },
           {
             "do": "sendRoom"

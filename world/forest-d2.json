@@ -114,6 +114,14 @@
             "item": "fake_coin"
           },
           {
+            "do": "setFlag",
+            "flag": "threw_coin_fog"
+          },
+          {
+            "do": "setFlag",
+            "flag": "goblin_appeared"
+          },
+          {
             "do": "sendRoom"
           }
         ]
