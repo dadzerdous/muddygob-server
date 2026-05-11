@@ -25,7 +25,8 @@ if (fs.existsSync(ACCOUNT_PATH)) {
             if (acc.mana     === undefined) acc.mana     = 100;
             if (acc.weaponXP === undefined) acc.weaponXP = {};
             if (acc.xp       === undefined) acc.xp       = 0;
-            if (acc.flags    === undefined) acc.flags     = {};
+            if (acc.flags    === undefined) acc.flags          = {};
+            if (acc.eventsTriggered === undefined) acc.eventsTriggered = {};
         }
     } catch { accounts = {}; }
 } else {
@@ -119,6 +120,7 @@ function create(socket, sess, data, startRoom, sendRoom) {
         xp:         0,
         weaponXP:   {},
         flags:      {},
+        eventsTriggered: {},
         hands:              { left: null, right: null },
         inventory:          [],
         discovered:         {},

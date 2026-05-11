@@ -28,6 +28,12 @@ function checkEvent(socket, sess, action, item, target) {
 
     console.log("[EVENT] firing:", action, item, target);
 
+    // Track event trigger count per room on account
+    if (!acc.eventsTriggered) acc.eventsTriggered = {};
+    const roomId = sess.room;
+    acc.eventsTriggered[roomId] = (acc.eventsTriggered[roomId] ?? 0) + 1;
+    Accounts.save();
+
     // Fire each outcome in order
     for (const outcome of event.outcome) {
         fireOutcome(socket, sess, acc, race, outcome);
