@@ -105,13 +105,14 @@ function clearAllTimers(loginId) {
 }
 
 // ── MESSAGE HELPERS ───────────────────────────────────────
-function sendHit(socket, msg, side) {
-    // side: 'player' | 'enemy'
-    const msgType = side === 'enemy' ? 'hit-enemy' : 'hit-player';
-    socket.send(JSON.stringify({ type: 'system', msg, msgType }));
+function sendHit(socket, msg, side, dmg, dmgType) {
+    const msgType = side === 'enemy' ? 'hit-enemy'
+                  : side === 'right' ? 'hit-right'
+                  : 'hit-left';
+    socket.send(JSON.stringify({ type: 'system', msg, msgType, dmg: dmg ?? 0, dmgType: dmgType ?? 'physical' }));
 }
-function sendMiss(socket, msg) {
-    socket.send(JSON.stringify({ type: 'system', msg, msgType: 'miss' }));
+function sendMiss(socket, msg, side) {
+    socket.send(JSON.stringify({ type: 'system', msg, msgType: 'miss', side: side ?? 'enemy' }));
 }
 function sendEvent(socket, msg) {
     socket.send(JSON.stringify({ type: 'system', msg, msgType: 'event' }));
@@ -119,11 +120,14 @@ function sendEvent(socket, msg) {
 
 // ── PUSH COMBAT STATE TO CLIENT ───────────────────────────
 function push(socket, sess) {
-    const cs = getCS(sess);
+    const cs   = getCS(sess);
+    const room = World.rooms[sess.room];
+    const npc  = cs?.npcId ? getNpcDef(room, cs.npcId) : null;
     socket.send(JSON.stringify({
         type:     'combat',
         stage:    cs?.stage    ?? STAGE.IDLE,
         npcId:    cs?.npcId   ?? null,
+        npcEmoji: npc?.emoji  ?? '👾',
         npcHp:    cs?.npcHp   ?? null,
         playerHp: cs?.playerHp ?? sess.hp ?? 100,
     }));
@@ -347,7 +351,7 @@ function startNpcAttackLoop(socket, sess) {
         const hitTemplate = npc?.hitByRace?.[race]
             ?? `${npcEmoji} The ${cs.npcId} hits for {dmg}. ({hp} hp)`;
         const hit = hitTemplate.replace('{dmg}', dmg).replace('{hp}', cs.playerHp);
-        sendHit(socket, hit, 'enemy');
+        sendHit(socket, hit, 'enemy', dmg, npc?.damageType ?? 'blunt');
 
         push(socket, sess);
 
@@ -400,7 +404,7 @@ function playerAttack(socket, sess, weaponId) {
     const hit = isArmed
         ? ({ goblin: `${weaponEmoji} You hit for ${dmg} ${dmgType}.`, human: `${weaponEmoji} You strike for ${dmg} ${dmgType}.`, elf: `${weaponEmoji} ${dmg} ${dmgType}. Clean.` }[race] ?? `${weaponEmoji} ${dmg} damage.`)
         : ({ goblin: `${weaponEmoji} Your fist connects. ${dmg} damage.`, human: `${weaponEmoji} You punch for ${dmg} damage.`, elf: `${weaponEmoji} Solid. ${dmg} damage.` }[race] ?? `${weaponEmoji} ${dmg} damage.`);
-    sendHit(socket, hit, 'player');
+    sendHit(socket, hit, hand, dmg, dmgType);
 
     if (cs.npcHp <= 0) {
         npcDeath(socket, sess, npc, acc, race);
