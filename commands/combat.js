@@ -466,6 +466,18 @@ function npcDeath(socket, sess, npc, acc, race) {
         room.objects[cs.npcId].state = 'hidden';
     }
 
+    // Quest flag for NPC kills
+    const killFlag = `killed_${cs.npcId}`;
+    if (!acc.flags) acc.flags = {};
+    if (!acc.flags[killFlag]) {
+        acc.flags[killFlag] = true;
+        Accounts.save();
+        try {
+            const { sendQuestState } = require('../core/events');
+            sendQuestState(socket, acc);
+        } catch(e) {}
+    }
+
     endCS(sess);
     push(socket, sess);
 

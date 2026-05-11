@@ -9,8 +9,7 @@ module.exports = {
 
     execute(ctx, arg) {
         const World = require('../core/world');
-        const { socket, sess, sendSystem, sendRoom, accounts, world, broadcastToRoomExcept } = ctx;
-        const Sessions = require('../core/sessions');
+        const { socket, sess, sendSystem, sendRoom, accounts, world } = ctx;
         const Accounts = require("../core/accounts");
 
         const acc = accounts[sess.loginId];
@@ -61,11 +60,21 @@ module.exports = {
         acc.hands[slot] = defId;
         Accounts.save();
 
-        socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
         const displayName = World.items[defId]?.name || defId;
+        socket.send(JSON.stringify({ type: "hands", hands: acc.hands }));
         sendSystem(socket, `You pick up the ${displayName}.`);
-        broadcastToRoomExcept(sess.room, `${acc.name} picks up the ${displayName}.`, socket);
-        Sessions.broadcastRoomToOthers(sess.room, socket, sendRoom);
+
+        // Quest flag: took_rock
+        if (defId === 'rock' && !acc.flags?.took_rock) {
+            if (!acc.flags) acc.flags = {};
+            acc.flags.took_rock = true;
+            Accounts.save();
+            try {
+                const { sendQuestState } = require('../core/events');
+                sendQuestState(socket, acc);
+            } catch(e) {}
+        }
+
         sendRoom(socket, sess.room);
     }
 };
